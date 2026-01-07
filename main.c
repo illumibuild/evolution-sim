@@ -25,6 +25,10 @@
 #include <nuklear.h>
 #include <nuklear_sdl_renderer.h>
 
+#define TITLE "evolution-sim"
+#define VERSION "v0.1.0 alpha 1"
+#define RELEASE_DATE "01/07/2026"
+
 typedef unsigned char uint8;
 
 typedef int int32;
@@ -35,16 +39,14 @@ typedef unsigned long long uint64;
 
 static struct nk_context *nk_ctx;
 
-#define WINDOW_TITLE "evolution-sim"
-
 #define WINDOW_WIDTH  1280
 #define WINDOW_HEIGHT 720
 
 #define TILE_SRC_WIDTH  180
 #define TILE_SRC_HEIGHT 180
 
-#define ANIMATION_MS 250
-#define ANIMATION_FPS 16
+#define ANIMATION_MS 500
+#define ANIMATION_FPS 8
 
 #define ANIMATION_TILE_NONE     0x00
 #define ANIMATION_CELL_NONE     0x10
@@ -155,7 +157,7 @@ static inline bool init(void) {
         return false;
     }
     window = SDL_CreateWindow(
-        WINDOW_TITLE,
+        TITLE,
         SDL_WINDOWPOS_CENTERED,
         SDL_WINDOWPOS_CENTERED,
         WINDOW_WIDTH,
@@ -229,6 +231,7 @@ static inline void quit(void) {
 int32 window_w, window_h;
 
 enum UXState {
+    UX_ANY,
     UX_CREATION,
     UX_GENERATION,
     UX_SIM
@@ -300,6 +303,32 @@ struct nk_rect label_generating_pos() {
     return nk_rect(
         10,
         window_h / 2 - 12,
+        window_w - 20,
+        24
+    );
+}
+
+#define label_version_text VERSION
+#define label_version_alignment NK_TEXT_ALIGN_RIGHT
+#define label_version_active_ux_state UX_ANY
+
+struct nk_rect label_version_pos() {
+    return nk_rect(
+        10,
+        window_h - 58,
+        window_w - 20,
+        24
+    );
+}
+
+#define label_release_date_text RELEASE_DATE
+#define label_release_date_alignment NK_TEXT_ALIGN_RIGHT
+#define label_release_date_active_ux_state UX_ANY
+
+struct nk_rect label_release_date_pos() {
+    return nk_rect(
+        10,
+        window_h - 34,
         window_w - 20,
         24
     );
@@ -750,6 +779,24 @@ static union GUIElement gui_elements[] = {
             .active_ux_state = text_report_live_cell_count_active_ux_state,
             .pos = text_report_live_cell_count_pos
         }
+    },
+    {
+        .label_element = {
+            .type = GUI_LABEL,
+            .text = label_version_text,
+            .alignment = label_version_alignment,
+            .active_ux_state = label_version_active_ux_state,
+            .pos = label_version_pos
+        }
+    },
+    {
+        .label_element = {
+            .type = GUI_LABEL,
+            .text = label_release_date_text,
+            .alignment = label_release_date_alignment,
+            .active_ux_state = label_release_date_active_ux_state,
+            .pos = label_release_date_pos
+        }
     }
 };
 
@@ -775,6 +822,8 @@ static union GUIElement gui_elements[] = {
 #define text_report_seed            gui_elements[17].text_element
 #define text_report_gen             gui_elements[18].text_element
 #define text_report_live_cell_count gui_elements[19].text_element
+#define label_version               gui_elements[20].text_element
+#define label_release_date          gui_elements[21].text_element
 
 static inline bool start_gui(void) {
     for (uint8 i = 0; i < GUI_ELEMENT_COUNT; ++i) {
@@ -826,7 +875,10 @@ static inline void do_gui(void) {
                 {
                     struct GUILabelElement *gui_label_element =
                         &gui_elements[i].label_element;
-                    if (ux_state != gui_label_element->active_ux_state) {
+                    if (
+                        ux_state != gui_label_element->active_ux_state &&
+                        gui_label_element->active_ux_state != UX_ANY
+                    ) {
                         continue;
                     }
                     nk_layout_space_push(
@@ -845,7 +897,10 @@ static inline void do_gui(void) {
                 {
                     struct GUITextElement *gui_text_element =
                         &gui_elements[i].text_element;
-                    if (ux_state != gui_text_element->active_ux_state) {
+                    if (
+                        ux_state != gui_text_element->active_ux_state &&
+                        gui_text_element->active_ux_state != UX_ANY
+                    ) {
                         memset(gui_text_element->buffer, '\0', gui_text_element->max);
                         continue;
                     }
@@ -865,7 +920,10 @@ static inline void do_gui(void) {
                 {
                     struct GUIInputElement *gui_input_element =
                         &gui_elements[i].input_element;
-                    if (ux_state != gui_input_element->active_ux_state) {
+                    if (
+                        ux_state != gui_input_element->active_ux_state &&
+                        gui_input_element->active_ux_state != UX_ANY
+                    ) {
                         memset(gui_input_element->buffer, '\0', gui_input_element->max);
                         continue;
                     }
@@ -886,7 +944,10 @@ static inline void do_gui(void) {
                 {
                     struct GUIButtonElement *gui_button_element =
                         &gui_elements[i].button_element;
-                    if (ux_state != gui_button_element->active_ux_state) {
+                    if (
+                        ux_state != gui_button_element->active_ux_state &&
+                        gui_button_element->active_ux_state != UX_ANY
+                    ) {
                         gui_button_element->is_enabled = false;
                         gui_button_element->is_pressed = false;
                         continue;
@@ -914,7 +975,10 @@ static inline void do_gui(void) {
                 {
                     struct GUIIconButtonElement *gui_icon_button_element =
                         &gui_elements[i].icon_button_element;
-                    if (ux_state != gui_icon_button_element->active_ux_state) {
+                    if (
+                        ux_state != gui_icon_button_element->active_ux_state &&
+                        gui_icon_button_element->active_ux_state != UX_ANY
+                    ) {
                         gui_icon_button_element->is_enabled = false;
                         gui_icon_button_element->is_pressed = false;
                         continue;
@@ -942,7 +1006,10 @@ static inline void do_gui(void) {
                 {
                     struct GUIPanelElement *gui_panel_element =
                         &gui_elements[i].panel_element;
-                    if (ux_state != gui_panel_element->active_ux_state) {
+                    if (
+                        ux_state != gui_panel_element->active_ux_state &&
+                        gui_panel_element->active_ux_state != UX_ANY
+                    ) {
                         continue;
                     }
                     nk_fill_rect(
@@ -1514,6 +1581,7 @@ static inline bool tick(void) {
 }
 
 int main() {
+    printf("%s %s - %s\n", TITLE, VERSION, RELEASE_DATE);
     if (!init()) {
         fprintf(stderr, "%s\n", SDL_GetError());
         return 1;
