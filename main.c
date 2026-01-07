@@ -992,7 +992,7 @@ struct World {
 
 static struct World world;
 
-#define tile_at(x, y) world.tilemap[(y) * world.w + (x)]
+#define tile_at(x, y) world.tilemap[(y) * (uint64)world.w + (x)]
 
 #define MAX_GENERATION_OPS_PER_TICK 1000000
 
