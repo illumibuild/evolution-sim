@@ -1,3 +1,6 @@
 /.vscode
+/build
+/releases
 /evolution-sim
 /Makefile
+/compile.bat
