@@ -34,22 +34,9 @@ gcc -std=c17 -Wall -O2 main.c -o evolution-sim -I<SDL2 path> -I<Nuklear path> -L
 Windows (MSVC):
 
 ```
-cl /std:c17 /W4 /O2 main.c /Fe:evolution-sim.exe /I"<SDL2 path>" /I"<Nuklear path>" /link ^
-/LIBPATH:"<libs path>" SDL2.lib SDL2_image.lib
-```
-
-### Usage
-
-Linux:
-
-```
-./evolution-sim
-```
-
-Windows:
-
-```
-evolution-sim.exe
+cl /std:c17 /W4 /O2 main.c /Fe:evolution-sim.exe /I"<SDL2 path>" /I"<SDL2_image path>" ^
+/I"<Nuklear path>" /link Shell32.lib /LIBPATH:"<SDL2 path>" SDL2main.lib SDL2.lib ^
+/LIBPATH:"<SDL2_image path>" SDL2_image.lib /SUBSYSTEM:WINDOWS
 ```
 
 ## Controls
