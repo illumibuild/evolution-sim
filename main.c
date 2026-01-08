@@ -1,5 +1,3 @@
-#define _POSIX_C_SOURCE 200809L
-
 #include <errno.h>
 #include <limits.h>
 #include <stdbool.h>
@@ -14,11 +12,9 @@
 
 #define NK_INCLUDE_FIXED_TYPES
 #define NK_INCLUDE_STANDARD_IO
-#define NK_INCLUDE_STANDARD_VARARGS
 #define NK_INCLUDE_DEFAULT_ALLOCATOR
 #define NK_INCLUDE_VERTEX_BUFFER_OUTPUT
 #define NK_INCLUDE_FONT_BAKING
-#define NK_INCLUDE_DEFAULT_FONT
 #define NK_IMPLEMENTATION
 #define NK_SDL_RENDERER_IMPLEMENTATION
 
@@ -26,21 +22,24 @@
 #include <nuklear_sdl_renderer.h>
 
 #define TITLE "evolution-sim"
-#define VERSION "v0.1.0 alpha 1"
-#define RELEASE_DATE "01/07/2026"
+#define VERSION "v0.1.0 alpha 2 preview"
+#define RELEASE_DATE "01/08/2026"
 
 typedef unsigned char uint8;
+
+typedef unsigned short uint16;
 
 typedef int int32;
 
 typedef unsigned int uint32;
 
-typedef unsigned long long uint64;
-
 static struct nk_context *nk_ctx;
 
 #define WINDOW_WIDTH  1280
 #define WINDOW_HEIGHT 720
+
+#define MIN_WINDOW_WIDTH 853
+#define MIN_WINDOW_HEIGHT 480
 
 #define TILE_SRC_WIDTH  180
 #define TILE_SRC_HEIGHT 180
@@ -56,14 +55,14 @@ static struct nk_context *nk_ctx;
 
 #define FONT_SIZE 24
 
-static uint64 rng_state, rng_seed;
+static uint32 rng_state, rng_seed;
 
-void my_srand(uint64 seed) {
-    rng_seed = rng_state = seed == 0 ? (uint64)time(NULL) : seed;
+void my_srand(uint32 seed) {
+    rng_seed = rng_state = seed == 0 ? (uint32)time(NULL) : seed;
 }
 
-uint64 my_rand(void) {
-    uint64 rng_output = rng_state;
+uint32 my_rand(void) {
+    uint32 rng_output = rng_state;
     rng_output ^= rng_output >> 12;
     rng_output ^= rng_output << 25;
     rng_output ^= rng_output >> 27;
@@ -87,6 +86,8 @@ static const char *const icon_paths[] = {
     "resources/icons/step.png",
     "resources/icons/zoom_in.png",
     "resources/icons/zoom_out.png",
+    "resources/icons/speed_up.png",
+    "resources/icons/slow_down.png",
     "resources/icons/quit.png"
 };
 
@@ -96,9 +97,14 @@ static SDL_Texture *icon_textures[ICON_COUNT];
 
 static struct nk_image icons[ICON_COUNT];
 
-static void select_animation_frame(SDL_Rect *srcrect, uint8 animation, uint32 tick_diff) {
+static void select_animation_frame(
+    SDL_Rect *srcrect,
+    uint8 animation,
+    uint32 tick_diff,
+    uint8 speed
+) {
     srcrect->x =
-        (animation / 0x10 + tick_diff / (1000 / ANIMATION_FPS)) * TILE_SRC_WIDTH;
+        (animation / 0x10 + tick_diff / (1000 / (ANIMATION_FPS * speed))) * TILE_SRC_WIDTH;
     srcrect->y = animation % 0x10 * TILE_SRC_HEIGHT;
     srcrect->w = TILE_SRC_WIDTH;
     srcrect->h = TILE_SRC_HEIGHT;
@@ -167,7 +173,7 @@ static inline bool init(void) {
     if (!window) {
         return false;
     }
-    SDL_SetWindowMinimumSize(window, WINDOW_WIDTH, WINDOW_HEIGHT);
+    SDL_SetWindowMinimumSize(window, MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT);
     renderer = SDL_CreateRenderer(
         window,
         -1,
@@ -343,7 +349,7 @@ struct GUITextElement {
     const enum UXState active_ux_state;
 };
 
-#define text_error_max 45
+#define text_error_max 42
 #define text_error_alignment NK_TEXT_ALIGN_CENTERED
 #define text_error_active_ux_state UX_CREATION
 
@@ -352,6 +358,32 @@ struct nk_rect text_error_pos() {
         window_w / 2 - 300,
         window_h / 2 + 200,
         600,
+        24
+    );
+}
+
+#define text_zoom_max 4
+#define text_zoom_alignment NK_TEXT_ALIGN_CENTERED
+#define text_zoom_active_ux_state UX_SIM
+
+struct nk_rect text_zoom_pos() {
+    return nk_rect(
+        260,
+        20,
+        80,
+        24
+    );
+}
+
+#define text_speed_max 2
+#define text_speed_alignment NK_TEXT_ALIGN_CENTERED
+#define text_speed_active_ux_state UX_SIM
+
+struct nk_rect text_speed_pos() {
+    return nk_rect(
+        500,
+        20,
+        40,
         24
     );
 }
@@ -417,7 +449,7 @@ struct GUIInputElement {
     struct nk_rect (*const pos)();
 };
 
-#define input_world_width_max 9
+#define input_world_width_max 5
 #define input_world_width_filter nk_filter_decimal
 #define input_world_width_active_ux_state UX_CREATION
 
@@ -430,7 +462,7 @@ struct nk_rect input_world_width_pos() {
     );
 }
 
-#define input_world_height_max 9
+#define input_world_height_max 5
 #define input_world_height_filter nk_filter_decimal
 #define input_world_height_active_ux_state UX_CREATION
 
@@ -537,14 +569,38 @@ struct nk_rect icon_button_zoom_in_pos() {
 
 struct nk_rect icon_button_zoom_out_pos() {
     return nk_rect(
-        260,
+        350,
         10,
         40,
         40
     );
 }
 
-#define icon_button_quit_icon &icons[5]
+#define icon_button_speed_up_icon &icons[5]
+#define icon_button_speed_up_active_ux_state UX_SIM
+
+struct nk_rect icon_button_speed_up_pos() {
+    return nk_rect(
+        450,
+        10,
+        40,
+        40
+    );
+}
+
+#define icon_button_slow_down_icon &icons[6]
+#define icon_button_slow_down_active_ux_state UX_SIM
+
+struct nk_rect icon_button_slow_down_pos() {
+    return nk_rect(
+        550,
+        10,
+        40,
+        40
+    );
+}
+
+#define icon_button_quit_icon &icons[7]
 #define icon_button_quit_active_ux_state UX_SIM
 
 struct nk_rect icon_button_quit_pos() {
@@ -731,6 +787,46 @@ static union GUIElement gui_elements[] = {
         }
     },
     {
+        .text_element = {
+            .type = GUI_TEXT,
+            .max = text_zoom_max,
+            .buffer = NULL,
+            .alignment = text_zoom_alignment,
+            .active_ux_state = text_zoom_active_ux_state,
+            .pos = text_zoom_pos
+        }
+    },
+    {
+        .icon_button_element = {
+            .type = GUI_ICON_BUTTON,
+            .icon = icon_button_speed_up_icon,
+            .is_enabled = false,
+            .is_pressed = false,
+            .active_ux_state = icon_button_speed_up_active_ux_state,
+            .pos = icon_button_speed_up_pos
+        }
+    },
+    {
+        .icon_button_element = {
+            .type = GUI_ICON_BUTTON,
+            .icon = icon_button_slow_down_icon,
+            .is_enabled = false,
+            .is_pressed = false,
+            .active_ux_state = icon_button_slow_down_active_ux_state,
+            .pos = icon_button_slow_down_pos
+        }
+    },
+    {
+        .text_element = {
+            .type = GUI_TEXT,
+            .max = text_speed_max,
+            .buffer = NULL,
+            .alignment = text_speed_alignment,
+            .active_ux_state = text_speed_active_ux_state,
+            .pos = text_speed_pos
+        }
+    },
+    {
         .icon_button_element = {
             .type = GUI_ICON_BUTTON,
             .icon = icon_button_quit_icon,
@@ -817,13 +913,17 @@ static union GUIElement gui_elements[] = {
 #define icon_button_step            gui_elements[12].icon_button_element
 #define icon_button_zoom_in         gui_elements[13].icon_button_element
 #define icon_button_zoom_out        gui_elements[14].icon_button_element
-#define icon_button_quit            gui_elements[15].icon_button_element
-#define text_report_world_size      gui_elements[16].text_element
-#define text_report_seed            gui_elements[17].text_element
-#define text_report_gen             gui_elements[18].text_element
-#define text_report_live_cell_count gui_elements[19].text_element
-#define label_version               gui_elements[20].text_element
-#define label_release_date          gui_elements[21].text_element
+#define text_zoom                   gui_elements[15].text_element
+#define icon_button_speed_up        gui_elements[16].icon_button_element
+#define icon_button_slow_down       gui_elements[17].icon_button_element
+#define text_speed                  gui_elements[18].text_element
+#define icon_button_quit            gui_elements[19].icon_button_element
+#define text_report_world_size      gui_elements[20].text_element
+#define text_report_seed            gui_elements[21].text_element
+#define text_report_gen             gui_elements[22].text_element
+#define text_report_live_cell_count gui_elements[23].text_element
+#define label_version               gui_elements[24].text_element
+#define label_release_date          gui_elements[25].text_element
 
 static inline bool start_gui(void) {
     for (uint8 i = 0; i < GUI_ELEMENT_COUNT; ++i) {
@@ -1043,34 +1143,34 @@ static inline void end_gui(void) {
 }
 
 struct Cell {
-    uint64 age, energy;
+    uint32 age, energy;
 };
 
 struct Tile {
-    uint64 energy;
+    uint32 energy;
     struct Cell cell;
 };
 
 struct World {
-    uint64 gen;
-    uint32 w, h;
+    uint32 gen;
+    uint16 w, h;
     struct Tile *tilemap;
 };
 
 static struct World world;
 
-#define tile_at(x, y) world.tilemap[(y) * (uint64)world.w + (x)]
+#define tile_at(x, y) world.tilemap[(y) * (uint32)world.w + (x)]
 
 #define MAX_GENERATION_OPS_PER_TICK 1000000
 
 static bool generate() {
-    static uint32 x = 0, y = 0;
+    static uint16 x = 0, y = 0;
     uint32 operations = 0;
     for (; x < world.w; ++x) {
         for (; y < world.h; ++y) {
             struct Tile *tile = &tile_at(x, y);
-            uint64_t base = my_rand() % (77 * 76 / 2);
-            for (uint64 i = 0; i < 76; ++i) {
+            uint32 base = my_rand() % (77 * 76 / 2);
+            for (uint32 i = 0; i < 76; ++i) {
                 if (base < 76 - i) {
                     tile->energy = i;
                     break;
@@ -1086,11 +1186,8 @@ static bool generate() {
         }
         y = 0;
     }
-    if (operations == 0) {
-        x = 0;
-        y = 0;
-        return generate();
-    }
+    x = 0;
+    y = 0;
     return true;
 }
 
@@ -1103,11 +1200,11 @@ enum Direction {
 };
 
 struct CellAction {
-    uint64 x, y;
+    uint16 x, y;
     enum Direction direction;
 };
 
-uint64 live_cell_count, dying_cell_count, born_cell_count;
+uint32 live_cell_count, dying_cell_count, born_cell_count;
 
 struct CellAction *cell_deaths = NULL, *cell_divisions = NULL;
 
@@ -1120,14 +1217,14 @@ static void advance(void) {
     born_cell_count = 0;
     cell_deaths = NULL;
     cell_divisions = NULL;
-    for (uint32 x = 0; x < world.w; ++x) {
-        for (uint32 y = 0; y < world.h; ++y) {
+    for (uint16 x = 0; x < world.w; ++x) {
+        for (uint16 y = 0; y < world.h; ++y) {
             struct Tile *const tile = &tile_at(x, y);
             if (tile->cell.energy == 0) {
                 continue;
             }
             ++tile->cell.age;
-            const uint64
+            const uint8
                 harvested_energy =
                     (tile->energy >= 100 ? 3 : tile->energy >= 50 ? 2 : 1) +
                     (tile->cell.age >= 40 ? 2 : tile->cell.age >= 20 ? 1 : 0),
@@ -1189,25 +1286,29 @@ bool is_running = true;
 int32 scroll_x, scroll_y;
 
 static bool ux_creation(void) {
-    uint32 potential_w, potential_h;
+    uintmax_t potential_w = UINTMAX_MAX, potential_h = UINTMAX_MAX;
     if (input_world_width.buffer[0] != '\0' && input_world_height.buffer[0] != '\0') {
         errno = 0;
-        potential_w = strtoull(input_world_width.buffer, NULL, 10);
+        potential_w = strtoumax(input_world_width.buffer, NULL, 10);
         if (errno != 0) {
             return false;
         }
-        potential_h = strtoull(input_world_height.buffer, NULL, 10);
+        potential_h = strtoumax(input_world_height.buffer, NULL, 10);
         if (errno != 0) {
             return false;
         }
-        button_generate.is_enabled = potential_w >= 10 && potential_h >= 10;
+        button_generate.is_enabled =
+            potential_w >= 10 &&
+            potential_w <= UINT16_MAX &&
+            potential_h >= 10 &&
+            potential_h <= UINT16_MAX;
     } else {
         button_generate.is_enabled = false;
     }
     if (button_generate.is_pressed) {
         errno = 0;
-        const uint64 seed = input_seed.buffer[0] == '\0' ?
-            0 : strtoull(input_seed.buffer, NULL, 10);
+        const uint32 seed = input_seed.buffer[0] == '\0' ?
+            0 : (uint32)strtoumax(input_seed.buffer, NULL, 10);
         if (errno != 0) {
             return false;
         }
@@ -1233,8 +1334,8 @@ static bool ux_creation(void) {
 static bool ux_generation(void) {
     if (generate()) {
         live_cell_count = 0;
-        for (uint32 x = 0; x < world.w; ++x) {
-            for (uint32 y = 0; y < world.h; ++y) {
+        for (uint16 x = 0; x < world.w; ++x) {
+            for (uint16 y = 0; y < world.h; ++y) {
                 if (tile_at(x, y).cell.energy != 0) {
                     ++live_cell_count;
                 }
@@ -1245,19 +1346,36 @@ static bool ux_generation(void) {
     return true;
 }
 
-#define ZOOM_SPEED 0.05
+#define ZOOM_SPEED 5
 
-#define MIN_ZOOM 0.05
-#define DEFAULT_ZOOM 0.25
-#define MAX_ZOOM 1
+#define MIN_ZOOM 5
+#define DEFAULT_ZOOM 25
+#define MAX_ZOOM 100
+
+#define MIN_SPEED 1
+#define DEFAULT_SPEED 1
+#define MAX_SPEED 8
 
 static bool ux_sim(void) {
-    static uint64 last_gen = UINTMAX_MAX;
-    static double zoom = DEFAULT_ZOOM;
+    static bool is_ready = false;
+    static uint32 last_gen = UINT32_MAX;
+    static uint8 zoom = DEFAULT_ZOOM, speed = DEFAULT_SPEED;
     static int32 cam_x = 0, cam_y = 0, drag_x = 0, drag_y = 0;
-    static bool is_dragging = false, auto_mode = false, has_zoomed = false;
-    static uint64 animation_tick = 0;
-    if (last_gen == UINTMAX_MAX) {
+    static bool  is_dragging = false, has_acted = false, auto_mode = false;
+    static uint32 animation_tick = 0;
+    if (!is_ready) {
+        snprintf(
+            text_zoom.buffer,
+            text_zoom_max + 1,
+            "%u%%",
+            (uint32)DEFAULT_ZOOM
+        );
+        snprintf(
+            text_speed.buffer,
+            text_speed_max + 1,
+            "%ux",
+            (uint32)DEFAULT_SPEED
+        );
         snprintf(
             text_report_world_size.buffer,
             text_report_world_size_max + 1,
@@ -1268,33 +1386,38 @@ static bool ux_sim(void) {
         snprintf(
             text_report_seed.buffer,
             text_report_seed_max + 1,
-            "Seed: %llu",
+            "Seed: %u",
             rng_seed
         );
+        is_ready = true;
     }
     if (world.gen != last_gen) {
         snprintf(
             text_report_gen.buffer,
             text_report_gen_max + 1,
-            "Generation: %llu",
+            "Generation: %u",
             world.gen
         );
         snprintf(
             text_report_live_cell_count.buffer,
             text_report_live_cell_count_max + 1,
-            "Live cells: %llu",
+            "Live cells: %u",
             live_cell_count
         );
     }
     icon_button_start.is_enabled = !auto_mode;
     icon_button_stop.is_enabled = auto_mode;
     icon_button_step.is_enabled = !auto_mode && animation_tick == 0;
-    icon_button_zoom_in.is_enabled = true;
-    icon_button_zoom_out.is_enabled = true;
+    icon_button_zoom_in.is_enabled = zoom < MAX_ZOOM;
+    icon_button_zoom_out.is_enabled = zoom > MIN_ZOOM;
+    icon_button_speed_up.is_enabled = speed < MAX_SPEED;
+    icon_button_slow_down.is_enabled = speed > MIN_SPEED;
     icon_button_quit.is_enabled = true;
     if (icon_button_quit.is_pressed) {
-        last_gen = UINTMAX_MAX;
+        is_ready = false;
+        last_gen = UINT32_MAX;
         zoom = DEFAULT_ZOOM;
+        speed = DEFAULT_SPEED;
         cam_x = 0;
         cam_y = 0;
         is_dragging = false;
@@ -1306,48 +1429,81 @@ static bool ux_sim(void) {
     }
     int32 mouse_x, mouse_y;
     uint32 mouse_state = SDL_GetMouseState((int *)&mouse_x, (int *)&mouse_y);
-    if (scroll_y != 0) {
-        const double
-            new_zoom = zoom + (scroll_y < 0 ? -ZOOM_SPEED : ZOOM_SPEED),
-            factor = new_zoom / zoom;
-        if (new_zoom >= MIN_ZOOM && new_zoom <= MAX_ZOOM) {
-            cam_x = (cam_x - mouse_x) * factor + mouse_x;
-            cam_y = (cam_y - mouse_y) * factor + mouse_y;
-            zoom = new_zoom;
-        }
+    if ((scroll_y > 0 && zoom < MAX_ZOOM) || (scroll_y < 0 && zoom > MIN_ZOOM)) {
+        const uint8 new_zoom = zoom + (scroll_y < 0 ? -ZOOM_SPEED : ZOOM_SPEED);
+        const double factor = (double)new_zoom / zoom;
+        cam_x = (cam_x - mouse_x) * factor + mouse_x;
+        cam_y = (cam_y - mouse_y) * factor + mouse_y;
+        zoom = new_zoom;
+        snprintf(
+            text_zoom.buffer,
+            text_zoom_max + 1,
+            "%u%%",
+            (uint32)zoom
+        );
     }
     if (icon_button_zoom_in.is_pressed) {
-        if (!has_zoomed) {
-            const double
-                new_zoom = zoom + ZOOM_SPEED,
-                factor = new_zoom / zoom;
-            if (new_zoom <= MAX_ZOOM) {
-                cam_x = (cam_x - mouse_x) * factor + mouse_x;
-                cam_y = (cam_y - mouse_y) * factor + mouse_y;
-                zoom = new_zoom;
-            }
-            has_zoomed = true;
+        if (!has_acted) {
+            const uint8 new_zoom = zoom + ZOOM_SPEED;
+            const double factor = (double)new_zoom / zoom;
+            const int32 center_x = window_w / 2, center_y = window_h / 2;
+            cam_x = (cam_x - center_x) * factor + center_x;
+            cam_y = (cam_y - center_y) * factor + center_y;
+            zoom = new_zoom;
+            snprintf(
+                text_zoom.buffer,
+                text_zoom_max + 1,
+                "%u%%",
+                (uint32)zoom
+            );
+            has_acted = true;
         }
     } else if (icon_button_zoom_out.is_pressed) {
-        if (!has_zoomed) {
-            const double
-                new_zoom = zoom - ZOOM_SPEED,
-                factor = new_zoom / zoom;
-            if (new_zoom >= MIN_ZOOM) {
-                cam_x = (cam_x - mouse_x) * factor + mouse_x;
-                cam_y = (cam_y - mouse_y) * factor + mouse_y;
-                zoom = new_zoom;
-            }
-            has_zoomed = true;
+        if (!has_acted) {
+            const uint8 new_zoom = zoom - ZOOM_SPEED;
+            const double factor = (double)new_zoom / zoom;
+            const int32 center_x = window_w / 2, center_y = window_h / 2;
+            cam_x = (cam_x - center_x) * factor + center_x;
+            cam_y = (cam_y - center_y) * factor + center_y;
+            zoom = new_zoom;
+            snprintf(
+                text_zoom.buffer,
+                text_zoom_max + 1,
+                "%u%%",
+                (uint32)zoom
+            );
+            has_acted = true;
+        }
+    } else if (icon_button_speed_up.is_pressed) {
+        if (!has_acted) {
+            speed *= 2;
+            snprintf(
+                text_speed.buffer,
+                text_speed_max + 1,
+                "%ux",
+                (uint32)speed
+            );
+            has_acted = true;
+        }
+    } else if (icon_button_slow_down.is_pressed) {
+        if (!has_acted) {
+            speed /= 2;
+            snprintf(
+                text_speed.buffer,
+                text_speed_max + 1,
+                "%ux",
+                (uint32)speed
+            );
+            has_acted = true;
         }
     } else {
-        has_zoomed = false;
+        has_acted = false;
     }
     const struct nk_rect panel_controls_pos_rect = panel_controls.pos();
     if (
         mouse_state & SDL_BUTTON(SDL_BUTTON_RIGHT) &&
         mouse_x >= 0 &&
-        mouse_y >= panel_controls_pos_rect.y + panel_controls_pos_rect.h &&
+        mouse_y >= panel_controls_pos_rect.h &&
         mouse_x < window_w &&
         mouse_y < window_h
     ) {
@@ -1365,7 +1521,7 @@ static bool ux_sim(void) {
     } else {
         is_dragging = false;
     }
-    const uint64 curr_tick = SDL_GetTicks64();
+    const uint32 curr_tick = SDL_GetTicks();
     if (icon_button_start.is_pressed) {
         auto_mode = true;
     } else if (icon_button_stop.is_pressed) {
@@ -1378,19 +1534,53 @@ static bool ux_sim(void) {
         advance();
         animation_tick = curr_tick;
     }
-    if (animation_tick != 0 && curr_tick >= animation_tick + ANIMATION_MS) {
+    if (animation_tick != 0 && curr_tick >= animation_tick + ANIMATION_MS / speed) {
         animation_tick = 0;
     }
-    uint32 tile_dst_width = TILE_SRC_WIDTH * zoom, tile_dst_height = TILE_SRC_HEIGHT * zoom;
-    for (uint32 x = 0; x < world.w; ++x) {
-        for (uint32 y = 0; y < world.h; ++y) {
+    const int32
+        tile_dst_width = TILE_SRC_WIDTH * zoom / 100,
+        tile_dst_height = TILE_SRC_HEIGHT * zoom / 100;
+    if (
+        window_w > world.w * tile_dst_width ||
+        (cam_x > 0 && cam_x < -((int32)world.w * (int32)tile_dst_width - window_w))
+    ) {
+        cam_x = -((int32)world.w * (int32)tile_dst_width - window_w) / 2;
+    } else if (cam_x > 0) {
+        cam_x = 0;
+    } else if (cam_x < -((int32)world.w * (int32)tile_dst_width - window_w)) {
+        cam_x = -((int32)world.w * (int32)tile_dst_width - window_w);
+    }
+    if (
+        window_h - panel_controls_pos_rect.h > world.h * tile_dst_height ||
+        (
+            cam_y > 0 &&
+            cam_y < -(
+                (int32)world.h * (int32)tile_dst_height - window_h + panel_controls_pos_rect.h
+            )
+        )
+    ) {
+        cam_y = -(
+            (int32)world.h * (int32)tile_dst_height - window_h + panel_controls_pos_rect.h
+        ) / 2;
+    } else if (cam_y > 0) {
+        cam_y = 0;
+    } else if (
+        cam_y < -(
+            (int32)world.h * (int32)tile_dst_height - window_h + panel_controls_pos_rect.h
+        )
+    ) {
+        cam_y = -(
+            (int32)world.h * (int32)tile_dst_height - window_h + panel_controls_pos_rect.h
+        );
+    }
+    for (uint16 x = 0; x < world.w; ++x) {
+        for (uint16 y = 0; y < world.h; ++y) {
             SDL_Rect srcrect, dstrect = {
                 .x =
-                    x * tile_dst_width + cam_x,
+                    (uint32)x * tile_dst_width + cam_x,
                 .y =
-                    y *
+                    (uint32)y *
                     tile_dst_height +
-                    panel_controls_pos_rect.y +
                     panel_controls_pos_rect.h +
                     cam_y,
                 .w =
@@ -1421,7 +1611,8 @@ static bool ux_sim(void) {
             select_animation_frame(
                 &srcrect,
                 ANIMATION_TILE_NONE,
-                0
+                0,
+                speed
             );
             if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
                 return false;
@@ -1430,21 +1621,23 @@ static bool ux_sim(void) {
                 select_animation_frame(
                     &srcrect,
                     ANIMATION_CELL_NONE,
-                    0
+                    0,
+                    speed
                 );
                 double angle = 0.0;
                 if (animation_tick != 0) {
-                    for (uint64 i = 0; i < born_cell_count; ++i) {
+                    for (uint32 i = 0; i < born_cell_count; ++i) {
                         if (cell_divisions[i].x == x && cell_divisions[i].y == y) {
                             select_animation_frame(
                                 &srcrect,
                                 ANIMATION_CELL_DIVISION,
-                                curr_tick - animation_tick
+                                curr_tick - animation_tick,
+                                speed
                             );
                             angle = cell_divisions[i].direction * 90.0;
                             break;
                         } else {
-                            uint32
+                            uint16
                                 look_x = cell_divisions[i].x,
                                 look_y = cell_divisions[i].y;
                             bool is_overflowing = false;
@@ -1484,7 +1677,8 @@ static bool ux_sim(void) {
                                 select_animation_frame(
                                     &srcrect,
                                     ANIMATION_CELL_BIRTH,
-                                    curr_tick - animation_tick
+                                    curr_tick - animation_tick,
+                                    speed
                                 );
                                 angle = cell_divisions[i].direction * 90.0;
                                 break;
@@ -1506,12 +1700,13 @@ static bool ux_sim(void) {
                     return false;
                 }
             } else if (animation_tick != 0) {
-                for (uint64 i = 0; i < dying_cell_count; ++i) {
+                for (uint32 i = 0; i < dying_cell_count; ++i) {
                     if (cell_deaths[i].x == x && cell_deaths[i].y == y) {
                         select_animation_frame(
                             &srcrect,
                             ANIMATION_CELL_DEATH,
-                            curr_tick - animation_tick
+                            curr_tick - animation_tick,
+                            speed
                         );
                         if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
                             return false;
