@@ -1442,8 +1442,15 @@ static bool ux_sim(void) {
             (uint32)zoom
         );
     }
-    if (icon_button_zoom_in.is_pressed) {
-        if (!has_acted) {
+    const uint32 curr_tick = SDL_GetTicks();
+    if (icon_button_step.is_pressed) {
+        if (!has_acted && animation_tick == 0) {
+            advance();
+            animation_tick = curr_tick;
+        }
+        has_acted = true;
+    } else if (icon_button_zoom_in.is_pressed) {
+        if (!has_acted && zoom < MAX_ZOOM) {
             const uint8 new_zoom = zoom + ZOOM_SPEED;
             const double factor = (double)new_zoom / zoom;
             const int32 center_x = window_w / 2, center_y = window_h / 2;
@@ -1456,10 +1463,10 @@ static bool ux_sim(void) {
                 "%u%%",
                 (uint32)zoom
             );
-            has_acted = true;
         }
+        has_acted = true;
     } else if (icon_button_zoom_out.is_pressed) {
-        if (!has_acted) {
+        if (!has_acted && zoom > MIN_ZOOM) {
             const uint8 new_zoom = zoom - ZOOM_SPEED;
             const double factor = (double)new_zoom / zoom;
             const int32 center_x = window_w / 2, center_y = window_h / 2;
@@ -1472,10 +1479,10 @@ static bool ux_sim(void) {
                 "%u%%",
                 (uint32)zoom
             );
-            has_acted = true;
         }
+        has_acted = true;
     } else if (icon_button_speed_up.is_pressed) {
-        if (!has_acted) {
+        if (!has_acted && speed < MAX_SPEED) {
             speed *= 2;
             snprintf(
                 text_speed.buffer,
@@ -1483,10 +1490,10 @@ static bool ux_sim(void) {
                 "%ux",
                 (uint32)speed
             );
-            has_acted = true;
         }
+        has_acted = true;
     } else if (icon_button_slow_down.is_pressed) {
-        if (!has_acted) {
+        if (!has_acted && speed > MIN_SPEED) {
             speed /= 2;
             snprintf(
                 text_speed.buffer,
@@ -1494,8 +1501,8 @@ static bool ux_sim(void) {
                 "%ux",
                 (uint32)speed
             );
-            has_acted = true;
         }
+        has_acted = true;
     } else {
         has_acted = false;
     }
@@ -1521,16 +1528,12 @@ static bool ux_sim(void) {
     } else {
         is_dragging = false;
     }
-    const uint32 curr_tick = SDL_GetTicks();
     if (icon_button_start.is_pressed) {
         auto_mode = true;
     } else if (icon_button_stop.is_pressed) {
         auto_mode = false;
     }
-    if (
-        (icon_button_step.is_pressed && !auto_mode) ||
-        (auto_mode && animation_tick == 0)
-    ) {
+    if (auto_mode && animation_tick == 0) {
         advance();
         animation_tick = curr_tick;
     }
