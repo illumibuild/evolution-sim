@@ -22,8 +22,8 @@
 #include <nuklear_sdl_renderer.h>
 
 #define TITLE "evolution-sim"
-#define VERSION "v0.1.0 alpha 2 preview"
-#define RELEASE_DATE "01/08/2026"
+#define VERSION "v0.1.0 alpha 2"
+#define RELEASE_DATE "01/11/2026"
 
 typedef unsigned char uint8;
 
@@ -63,11 +63,11 @@ void my_srand(uint32 seed) {
 
 uint32 my_rand(void) {
     uint32 rng_output = rng_state;
-    rng_output ^= rng_output >> 12;
-    rng_output ^= rng_output << 25;
-    rng_output ^= rng_output >> 27;
+    rng_output ^= rng_output >> 17;
+    rng_output ^= rng_output << 5;
+    rng_output ^= rng_output >> 13;
     rng_state = rng_output;
-    return rng_output * 2685821657736338717;
+    return rng_output * 2654435771U;
 }
 
 static SDL_Window *window;
