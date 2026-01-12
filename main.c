@@ -1,5 +1,4 @@
 #include <errno.h>
-#include <limits.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -22,16 +21,8 @@
 #include <nuklear_sdl_renderer.h>
 
 #define TITLE "evolution-sim"
-#define VERSION "v0.1.0 alpha 2"
-#define RELEASE_DATE "01/11/2026"
-
-typedef unsigned char uint8;
-
-typedef unsigned short uint16;
-
-typedef int int32;
-
-typedef unsigned int uint32;
+#define VERSION "v0.1.0 alpha 3 preview"
+#define RELEASE_DATE "01/12/2026"
 
 static struct nk_context *nk_ctx;
 
@@ -41,28 +32,22 @@ static struct nk_context *nk_ctx;
 #define MIN_WINDOW_WIDTH 853
 #define MIN_WINDOW_HEIGHT 480
 
-#define TILE_SRC_WIDTH  180
-#define TILE_SRC_HEIGHT 180
+#define TILE_WIDTH  180
+#define TILE_HEIGHT 180
 
 #define ANIMATION_MS 500
 #define ANIMATION_FPS 8
 
-#define ANIMATION_TILE_NONE     0x00
-#define ANIMATION_CELL_NONE     0x10
-#define ANIMATION_CELL_DEATH    0x01
-#define ANIMATION_CELL_BIRTH    0x02
-#define ANIMATION_CELL_DIVISION 0x03
-
 #define FONT_SIZE 24
 
-static uint32 rng_state, rng_seed;
+static uint32_t rng_state, rng_seed;
 
-void my_srand(uint32 seed) {
-    rng_seed = rng_state = seed == 0 ? (uint32)time(NULL) : seed;
+void my_srand(uint32_t seed) {
+    rng_seed = rng_state = seed == 0 ? (uint32_t)time(NULL) : seed;
 }
 
-uint32 my_rand(void) {
-    uint32 rng_output = rng_state;
+uint32_t my_rand(void) {
+    uint32_t rng_output = rng_state;
     rng_output ^= rng_output >> 17;
     rng_output ^= rng_output << 5;
     rng_output ^= rng_output >> 13;
@@ -97,17 +82,30 @@ static SDL_Texture *icon_textures[ICON_COUNT];
 
 static struct nk_image icons[ICON_COUNT];
 
-static void select_animation_frame(
+#define STILL_TILE 0
+#define STILL_CELL 1
+
+static inline void select_still_frame(
     SDL_Rect *srcrect,
-    uint8 animation,
-    uint32 tick_diff,
-    uint8 speed
+    uint8_t atlas_idx
 ) {
-    srcrect->x =
-        (animation / 0x10 + tick_diff / (1000 / (ANIMATION_FPS * speed))) * TILE_SRC_WIDTH;
-    srcrect->y = animation % 0x10 * TILE_SRC_HEIGHT;
-    srcrect->w = TILE_SRC_WIDTH;
-    srcrect->h = TILE_SRC_HEIGHT;
+    srcrect->x = atlas_idx * TILE_WIDTH;
+    srcrect->y = 0;
+}
+
+#define ANIMATION_CELL_DEATH    1
+#define ANIMATION_CELL_BIRTH    2
+#define ANIMATION_CELL_DIVISION 3
+
+static inline void select_animation_frame(
+    SDL_Rect *srcrect,
+    uint8_t atlas_id,
+    uint32_t tick_diff,
+    uint8_t speed,
+    uint8_t rotation
+) {
+    srcrect->x = (tick_diff / (1000 / (ANIMATION_FPS * speed)) + rotation * 4) * TILE_WIDTH;
+    srcrect->y = atlas_id * TILE_HEIGHT;
 }
 
 #define COLOR_BG             nk_rgba(0x8C, 0x00, 0x3F, 0xFF)
@@ -152,7 +150,7 @@ static inline void nk_skin(void) {
     style_button_disabled.active.data.color = COLOR_TRIGGER;
 }
 
-#define TEXTURE_PATH "resources/spritesheet.png"
+#define TEXTURE_PATH "resources/texture_atlas.png"
 #define FONT_PATH    "resources/Ubuntu-R.ttf"
 
 static inline bool init(void) {
@@ -203,7 +201,7 @@ static inline bool init(void) {
     );
     nk_sdl_font_stash_end();
     nk_style_set_font(nk_ctx, &font->handle);
-    for (uint8 i = 0; i < ICON_COUNT; ++i) {
+    for (uint8_t i = 0; i < ICON_COUNT; ++i) {
         SDL_Surface *icon_surface = IMG_Load(icon_paths[i]);
         if (!icon_surface) {
             return false;
@@ -220,7 +218,7 @@ static inline bool init(void) {
 }
 
 static inline void quit(void) {
-    for (uint8 i = 0; i < ICON_COUNT; ++i) {
+    for (uint8_t i = 0; i < ICON_COUNT; ++i) {
         SDL_DestroyTexture(icon_textures[i]);
         icon_textures[i] = NULL;
     }
@@ -234,7 +232,7 @@ static inline void quit(void) {
     SDL_Quit();
 }
 
-int32 window_w, window_h;
+int32_t window_w, window_h;
 
 enum UXState {
     UX_ANY,
@@ -342,7 +340,7 @@ struct nk_rect label_release_date_pos() {
 
 struct GUITextElement {
     const enum GUIElementType type;
-    const uint32 max;
+    const uint32_t max;
     char *buffer;
     const enum nk_text_align alignment;
     struct nk_rect (*const pos)();
@@ -442,7 +440,7 @@ struct nk_rect text_report_live_cell_count_pos() {
 
 struct GUIInputElement {
     const enum GUIElementType type;
-    const uint32 max;
+    const uint32_t max;
     char *buffer;
     nk_bool (*filter)(const struct nk_text_edit *, nk_rune);
     const enum UXState active_ux_state;
@@ -926,7 +924,7 @@ static union GUIElement gui_elements[] = {
 #define label_release_date          gui_elements[25].text_element
 
 static inline bool start_gui(void) {
-    for (uint8 i = 0; i < GUI_ELEMENT_COUNT; ++i) {
+    for (uint8_t i = 0; i < GUI_ELEMENT_COUNT; ++i) {
         switch (gui_elements[i].type) {
         case GUI_TEXT:
             {
@@ -969,7 +967,7 @@ static inline void do_gui(void) {
             window_h,
             GUI_ELEMENT_COUNT
         );
-        for (uint8 i = 0; i < GUI_ELEMENT_COUNT; ++i) {
+        for (uint8_t i = 0; i < GUI_ELEMENT_COUNT; ++i) {
             switch (gui_elements[i].type) {
             case GUI_LABEL:
                 {
@@ -1134,7 +1132,7 @@ static inline void do_gui(void) {
 }
 
 static inline void end_gui(void) {
-    for (uint8 i = 0; i < GUI_ELEMENT_COUNT; ++i) {
+    for (uint8_t i = 0; i < GUI_ELEMENT_COUNT; ++i) {
         if (gui_elements[i].type == GUI_INPUT) {
             struct GUIInputElement *gui_input_element = &gui_elements[i].input_element;
             free(gui_input_element->buffer);
@@ -1143,34 +1141,34 @@ static inline void end_gui(void) {
 }
 
 struct Cell {
-    uint32 age, energy;
+    uint32_t age, energy;
 };
 
 struct Tile {
-    uint32 energy;
+    uint32_t energy;
     struct Cell cell;
 };
 
 struct World {
-    uint32 gen;
-    uint16 w, h;
+    uint32_t gen;
+    uint16_t w, h;
     struct Tile *tilemap;
 };
 
 static struct World world;
 
-#define tile_at(x, y) world.tilemap[(y) * (uint32)world.w + (x)]
+#define tile_at(x, y) world.tilemap[(y) * (uint32_t)world.w + (x)]
 
 #define MAX_GENERATION_OPS_PER_TICK 1000000
 
 static bool generate() {
-    static uint16 x = 0, y = 0;
-    uint32 operations = 0;
+    static uint16_t x = 0, y = 0;
+    uint32_t operations = 0;
     for (; x < world.w; ++x) {
         for (; y < world.h; ++y) {
             struct Tile *tile = &tile_at(x, y);
-            uint32 base = my_rand() % (77 * 76 / 2);
-            for (uint32 i = 0; i < 76; ++i) {
+            uint32_t base = my_rand() % (77 * 76 / 2);
+            for (uint32_t i = 0; i < 76; ++i) {
                 if (base < 76 - i) {
                     tile->energy = i;
                     break;
@@ -1200,11 +1198,11 @@ enum Direction {
 };
 
 struct CellAction {
-    uint16 x, y;
+    uint16_t x, y;
     enum Direction direction;
 };
 
-uint32 live_cell_count, dying_cell_count, born_cell_count;
+uint32_t live_cell_count, dying_cell_count, born_cell_count;
 
 struct CellAction *cell_deaths = NULL, *cell_divisions = NULL;
 
@@ -1217,14 +1215,14 @@ static void advance(void) {
     born_cell_count = 0;
     cell_deaths = NULL;
     cell_divisions = NULL;
-    for (uint16 x = 0; x < world.w; ++x) {
-        for (uint16 y = 0; y < world.h; ++y) {
+    for (uint16_t x = 0; x < world.w; ++x) {
+        for (uint16_t y = 0; y < world.h; ++y) {
             struct Tile *const tile = &tile_at(x, y);
             if (tile->cell.energy == 0) {
                 continue;
             }
             ++tile->cell.age;
-            const uint8
+            const uint8_t
                 harvested_energy =
                     (tile->energy >= 100 ? 3 : tile->energy >= 50 ? 2 : 1) +
                     (tile->cell.age >= 40 ? 2 : tile->cell.age >= 20 ? 1 : 0),
@@ -1251,7 +1249,7 @@ static void advance(void) {
                     x > 0 ? &tile_at(x - 1, y) : NULL
                 };
                 enum Direction direction = DIRECTION_NONE;
-                for (uint8 i = 0; i < 4; ++i) {
+                for (uint8_t i = 0; i < 4; ++i) {
                     if (
                         adjacent_tiles[i] &&
                         adjacent_tiles[i]->cell.energy == 0 &&
@@ -1283,7 +1281,7 @@ static void advance(void) {
 
 bool is_running = true;
 
-int32 scroll_x, scroll_y;
+int32_t scroll_x, scroll_y;
 
 static bool ux_creation(void) {
     uintmax_t potential_w = UINTMAX_MAX, potential_h = UINTMAX_MAX;
@@ -1307,8 +1305,8 @@ static bool ux_creation(void) {
     }
     if (button_generate.is_pressed) {
         errno = 0;
-        const uint32 seed = input_seed.buffer[0] == '\0' ?
-            0 : (uint32)strtoumax(input_seed.buffer, NULL, 10);
+        const uint32_t seed = input_seed.buffer[0] == '\0' ?
+            0 : (uint32_t)strtoumax(input_seed.buffer, NULL, 10);
         if (errno != 0) {
             return false;
         }
@@ -1334,8 +1332,8 @@ static bool ux_creation(void) {
 static bool ux_generation(void) {
     if (generate()) {
         live_cell_count = 0;
-        for (uint16 x = 0; x < world.w; ++x) {
-            for (uint16 y = 0; y < world.h; ++y) {
+        for (uint16_t x = 0; x < world.w; ++x) {
+            for (uint16_t y = 0; y < world.h; ++y) {
                 if (tile_at(x, y).cell.energy != 0) {
                     ++live_cell_count;
                 }
@@ -1358,23 +1356,23 @@ static bool ux_generation(void) {
 
 static bool ux_sim(void) {
     static bool is_ready = false;
-    static uint32 last_gen = UINT32_MAX;
-    static uint8 zoom = DEFAULT_ZOOM, speed = DEFAULT_SPEED;
-    static int32 cam_x = 0, cam_y = 0, drag_x = 0, drag_y = 0;
+    static uint32_t last_gen = UINT32_MAX;
+    static uint8_t zoom = DEFAULT_ZOOM, speed = DEFAULT_SPEED;
+    static int32_t cam_x = 0, cam_y = 0, drag_x = 0, drag_y = 0;
     static bool  is_dragging = false, has_acted = false, auto_mode = false;
-    static uint32 animation_tick = 0;
+    static uint32_t animation_tick = 0;
     if (!is_ready) {
         snprintf(
             text_zoom.buffer,
             text_zoom_max + 1,
             "%u%%",
-            (uint32)DEFAULT_ZOOM
+            (uint32_t)DEFAULT_ZOOM
         );
         snprintf(
             text_speed.buffer,
             text_speed_max + 1,
             "%ux",
-            (uint32)DEFAULT_SPEED
+            (uint32_t)DEFAULT_SPEED
         );
         snprintf(
             text_report_world_size.buffer,
@@ -1427,10 +1425,10 @@ static bool ux_sim(void) {
         ux_state = UX_CREATION;
         return true;
     }
-    int32 mouse_x, mouse_y;
-    uint32 mouse_state = SDL_GetMouseState((int *)&mouse_x, (int *)&mouse_y);
+    int32_t mouse_x, mouse_y;
+    uint32_t mouse_state = SDL_GetMouseState((int *)&mouse_x, (int *)&mouse_y);
     if ((scroll_y > 0 && zoom < MAX_ZOOM) || (scroll_y < 0 && zoom > MIN_ZOOM)) {
-        const uint8 new_zoom = zoom + (scroll_y < 0 ? -ZOOM_SPEED : ZOOM_SPEED);
+        const uint8_t new_zoom = zoom + (scroll_y < 0 ? -ZOOM_SPEED : ZOOM_SPEED);
         const double factor = (double)new_zoom / zoom;
         cam_x = (cam_x - mouse_x) * factor + mouse_x;
         cam_y = (cam_y - mouse_y) * factor + mouse_y;
@@ -1439,10 +1437,10 @@ static bool ux_sim(void) {
             text_zoom.buffer,
             text_zoom_max + 1,
             "%u%%",
-            (uint32)zoom
+            (uint32_t)zoom
         );
     }
-    const uint32 curr_tick = SDL_GetTicks();
+    const uint32_t curr_tick = SDL_GetTicks();
     if (icon_button_step.is_pressed) {
         if (!has_acted && animation_tick == 0) {
             advance();
@@ -1451,9 +1449,9 @@ static bool ux_sim(void) {
         has_acted = true;
     } else if (icon_button_zoom_in.is_pressed) {
         if (!has_acted && zoom < MAX_ZOOM) {
-            const uint8 new_zoom = zoom + ZOOM_SPEED;
+            const uint8_t new_zoom = zoom + ZOOM_SPEED;
             const double factor = (double)new_zoom / zoom;
-            const int32 center_x = window_w / 2, center_y = window_h / 2;
+            const int32_t center_x = window_w / 2, center_y = window_h / 2;
             cam_x = (cam_x - center_x) * factor + center_x;
             cam_y = (cam_y - center_y) * factor + center_y;
             zoom = new_zoom;
@@ -1461,15 +1459,15 @@ static bool ux_sim(void) {
                 text_zoom.buffer,
                 text_zoom_max + 1,
                 "%u%%",
-                (uint32)zoom
+                (uint32_t)zoom
             );
         }
         has_acted = true;
     } else if (icon_button_zoom_out.is_pressed) {
         if (!has_acted && zoom > MIN_ZOOM) {
-            const uint8 new_zoom = zoom - ZOOM_SPEED;
+            const uint8_t new_zoom = zoom - ZOOM_SPEED;
             const double factor = (double)new_zoom / zoom;
-            const int32 center_x = window_w / 2, center_y = window_h / 2;
+            const int32_t center_x = window_w / 2, center_y = window_h / 2;
             cam_x = (cam_x - center_x) * factor + center_x;
             cam_y = (cam_y - center_y) * factor + center_y;
             zoom = new_zoom;
@@ -1477,7 +1475,7 @@ static bool ux_sim(void) {
                 text_zoom.buffer,
                 text_zoom_max + 1,
                 "%u%%",
-                (uint32)zoom
+                (uint32_t)zoom
             );
         }
         has_acted = true;
@@ -1488,7 +1486,7 @@ static bool ux_sim(void) {
                 text_speed.buffer,
                 text_speed_max + 1,
                 "%ux",
-                (uint32)speed
+                (uint32_t)speed
             );
         }
         has_acted = true;
@@ -1499,7 +1497,7 @@ static bool ux_sim(void) {
                 text_speed.buffer,
                 text_speed_max + 1,
                 "%ux",
-                (uint32)speed
+                (uint32_t)speed
             );
         }
         has_acted = true;
@@ -1519,7 +1517,7 @@ static bool ux_sim(void) {
             drag_x = mouse_x;
             drag_y = mouse_y;
         } else {
-            int32 dx = mouse_x - drag_x, dy = mouse_y - drag_y;
+            int32_t dx = mouse_x - drag_x, dy = mouse_y - drag_y;
             cam_x += dx;
             cam_y += dy;
             drag_x = mouse_x;
@@ -1540,57 +1538,43 @@ static bool ux_sim(void) {
     if (animation_tick != 0 && curr_tick >= animation_tick + ANIMATION_MS / speed) {
         animation_tick = 0;
     }
-    const int32
-        tile_dst_width = TILE_SRC_WIDTH * zoom / 100,
-        tile_dst_height = TILE_SRC_HEIGHT * zoom / 100;
+    const int32_t tile_w = TILE_WIDTH * zoom / 100, tile_h = TILE_HEIGHT * zoom / 100;
     if (
-        window_w > world.w * tile_dst_width ||
-        (cam_x > 0 && cam_x < -((int32)world.w * (int32)tile_dst_width - window_w))
+        window_w > world.w * tile_w ||
+        (cam_x > 0 && cam_x < -((int32_t)world.w * (int32_t)tile_w - window_w))
     ) {
-        cam_x = -((int32)world.w * (int32)tile_dst_width - window_w) / 2;
+        cam_x = -((int32_t)world.w * (int32_t)tile_w - window_w) / 2;
     } else if (cam_x > 0) {
         cam_x = 0;
-    } else if (cam_x < -((int32)world.w * (int32)tile_dst_width - window_w)) {
-        cam_x = -((int32)world.w * (int32)tile_dst_width - window_w);
+    } else if (cam_x < -((int32_t)world.w * (int32_t)tile_w - window_w)) {
+        cam_x = -((int32_t)world.w * (int32_t)tile_w - window_w);
     }
     if (
-        window_h - panel_controls_pos_rect.h > world.h * tile_dst_height ||
+        window_h - panel_controls_pos_rect.h > world.h * tile_h ||
         (
             cam_y > 0 &&
             cam_y < -(
-                (int32)world.h * (int32)tile_dst_height - window_h + panel_controls_pos_rect.h
+                (int32_t)world.h * (int32_t)tile_h - window_h + panel_controls_pos_rect.h
             )
         )
     ) {
         cam_y = -(
-            (int32)world.h * (int32)tile_dst_height - window_h + panel_controls_pos_rect.h
+            (int32_t)world.h * (int32_t)tile_h - window_h + panel_controls_pos_rect.h
         ) / 2;
     } else if (cam_y > 0) {
         cam_y = 0;
     } else if (
-        cam_y < -(
-            (int32)world.h * (int32)tile_dst_height - window_h + panel_controls_pos_rect.h
-        )
+        cam_y < -((int32_t)world.h * (int32_t)tile_h - window_h + panel_controls_pos_rect.h)
     ) {
-        cam_y = -(
-            (int32)world.h * (int32)tile_dst_height - window_h + panel_controls_pos_rect.h
-        );
+        cam_y = -((int32_t)world.h * (int32_t)tile_h - window_h + panel_controls_pos_rect.h);
     }
-    for (uint16 x = 0; x < world.w; ++x) {
-        for (uint16 y = 0; y < world.h; ++y) {
-            SDL_Rect srcrect, dstrect = {
-                .x =
-                    (uint32)x * tile_dst_width + cam_x,
-                .y =
-                    (uint32)y *
-                    tile_dst_height +
-                    panel_controls_pos_rect.h +
-                    cam_y,
-                .w =
-                    tile_dst_width,
-                .h =
-                    tile_dst_height
-            };
+    SDL_Rect
+        srcrect = { .w = TILE_WIDTH, .h = TILE_HEIGHT },
+        dstrect = { .w = tile_w,     .h = tile_h      };
+    for (uint16_t x = 0; x < world.w; ++x) {
+        for (uint16_t y = 0; y < world.h; ++y) {
+            dstrect.x = (uint32_t)x * tile_w + cam_x;
+            dstrect.y = (uint32_t)y * tile_h + panel_controls_pos_rect.h + cam_y;
             if (
                 dstrect.x + dstrect.w < 0 ||
                 dstrect.y + dstrect.h < 0 ||
@@ -1611,36 +1595,31 @@ static bool ux_sim(void) {
             ) {
                 return false;
             }
-            select_animation_frame(
+            select_still_frame(
                 &srcrect,
-                ANIMATION_TILE_NONE,
-                0,
-                speed
+                STILL_TILE
             );
             if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
                 return false;
             }
             if (tile_at(x, y).cell.energy != 0) {
-                select_animation_frame(
+                select_still_frame(
                     &srcrect,
-                    ANIMATION_CELL_NONE,
-                    0,
-                    speed
+                    STILL_CELL
                 );
-                double angle = 0.0;
                 if (animation_tick != 0) {
-                    for (uint32 i = 0; i < born_cell_count; ++i) {
+                    for (uint32_t i = 0; i < born_cell_count; ++i) {
                         if (cell_divisions[i].x == x && cell_divisions[i].y == y) {
                             select_animation_frame(
                                 &srcrect,
                                 ANIMATION_CELL_DIVISION,
                                 curr_tick - animation_tick,
-                                speed
+                                speed,
+                                cell_divisions[i].direction
                             );
-                            angle = cell_divisions[i].direction * 90.0;
                             break;
                         } else {
-                            uint16
+                            uint16_t
                                 look_x = cell_divisions[i].x,
                                 look_y = cell_divisions[i].y;
                             bool is_overflowing = false;
@@ -1681,35 +1660,26 @@ static bool ux_sim(void) {
                                     &srcrect,
                                     ANIMATION_CELL_BIRTH,
                                     curr_tick - animation_tick,
-                                    speed
+                                    speed,
+                                    cell_divisions[i].direction
                                 );
-                                angle = cell_divisions[i].direction * 90.0;
                                 break;
                             }
                         }
                     }
                 }
-                if (
-                    SDL_RenderCopyEx(
-                        renderer,
-                        texture,
-                        &srcrect,
-                        &dstrect,
-                        angle,
-                        NULL,
-                        SDL_FLIP_NONE
-                    ) != 0
-                ) {
+                if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
                     return false;
                 }
             } else if (animation_tick != 0) {
-                for (uint32 i = 0; i < dying_cell_count; ++i) {
+                for (uint32_t i = 0; i < dying_cell_count; ++i) {
                     if (cell_deaths[i].x == x && cell_deaths[i].y == y) {
                         select_animation_frame(
                             &srcrect,
                             ANIMATION_CELL_DEATH,
                             curr_tick - animation_tick,
-                            speed
+                            speed,
+                            0
                         );
                         if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
                             return false;
