@@ -22,7 +22,7 @@
 
 #define TITLE "evolution-sim"
 #define VERSION "v0.1.0 alpha 3 preview"
-#define RELEASE_DATE "01/12/2026"
+#define RELEASE_DATE "01/14/2026"
 
 static struct nk_context *nk_ctx;
 
@@ -82,8 +82,9 @@ static SDL_Texture *icon_textures[ICON_COUNT];
 
 static struct nk_image icons[ICON_COUNT];
 
-#define STILL_TILE 0
-#define STILL_CELL 1
+#define STILL_TILE     0
+#define STILL_CELL     1
+#define STILL_POINTER 15
 
 static inline void select_still_frame(
     SDL_Rect *srcrect,
@@ -1359,7 +1360,8 @@ static bool ux_sim(void) {
     static uint32_t last_gen = UINT32_MAX;
     static uint8_t zoom = DEFAULT_ZOOM, speed = DEFAULT_SPEED;
     static int32_t cam_x = 0, cam_y = 0, drag_x = 0, drag_y = 0;
-    static bool  is_dragging = false, has_acted = false, auto_mode = false;
+    static uint16_t pointer_x = 0, pointer_y = 0;
+    static bool is_dragging = false, has_acted = true, auto_mode = false;
     static uint32_t animation_tick = 0;
     if (!is_ready) {
         snprintf(
@@ -1418,7 +1420,10 @@ static bool ux_sim(void) {
         speed = DEFAULT_SPEED;
         cam_x = 0;
         cam_y = 0;
+        pointer_x = 0;
+        pointer_y = 0;
         is_dragging = false;
+        has_acted = true;
         auto_mode = false;
         free(world.tilemap);
         world.tilemap = NULL;
@@ -1441,6 +1446,8 @@ static bool ux_sim(void) {
         );
     }
     const uint32_t curr_tick = SDL_GetTicks();
+    const struct nk_rect panel_controls_pos_rect = panel_controls.pos();
+    const int32_t tile_w = TILE_WIDTH * zoom / 100, tile_h = TILE_HEIGHT * zoom / 100;
     if (icon_button_step.is_pressed) {
         if (!has_acted && animation_tick == 0) {
             advance();
@@ -1501,10 +1508,31 @@ static bool ux_sim(void) {
             );
         }
         has_acted = true;
+    } else if (
+        mouse_state & SDL_BUTTON(SDL_BUTTON_LEFT) &&
+        mouse_x >= 0 &&
+        mouse_y >= panel_controls_pos_rect.h &&
+        mouse_x < window_w &&
+        mouse_y < window_h
+    ) {
+        if (!has_acted) {
+            const int32_t
+                disp_x = mouse_x - cam_x,
+                disp_y = mouse_y - panel_controls_pos_rect.h - cam_y;
+            if (
+                disp_x >= 0 &&
+                disp_y >= 0 &&
+                disp_x < world.w * tile_w &
+                disp_y < world.h * tile_h
+            ) {
+                pointer_x = disp_x / tile_w;
+                pointer_y = disp_y / tile_h;
+            }
+        }
+        has_acted = true;
     } else {
         has_acted = false;
     }
-    const struct nk_rect panel_controls_pos_rect = panel_controls.pos();
     if (
         mouse_state & SDL_BUTTON(SDL_BUTTON_RIGHT) &&
         mouse_x >= 0 &&
@@ -1538,7 +1566,6 @@ static bool ux_sim(void) {
     if (animation_tick != 0 && curr_tick >= animation_tick + ANIMATION_MS / speed) {
         animation_tick = 0;
     }
-    const int32_t tile_w = TILE_WIDTH * zoom / 100, tile_h = TILE_HEIGHT * zoom / 100;
     if (
         window_w > world.w * tile_w ||
         (cam_x > 0 && cam_x < -((int32_t)world.w * (int32_t)tile_w - window_w))
@@ -1688,6 +1715,22 @@ static bool ux_sim(void) {
                     }
                 }
             }
+        }
+    }
+    dstrect.x = (uint32_t)pointer_x * tile_w + cam_x;
+    dstrect.y = (uint32_t)pointer_y * tile_h + panel_controls_pos_rect.h + cam_y;
+    if (
+        dstrect.x + dstrect.w >= 0 &&
+        dstrect.y + dstrect.h >= 0 &&
+        dstrect.x < window_w &&
+        dstrect.y < window_h
+    ) {
+        select_still_frame(
+            &srcrect,
+            STILL_POINTER
+        );
+        if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
+            return false;
         }
     }
     return true;
