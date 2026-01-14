@@ -1,3 +1,11 @@
+#define NK_INCLUDE_FIXED_TYPES
+#define NK_INCLUDE_STANDARD_IO
+#define NK_INCLUDE_DEFAULT_ALLOCATOR
+#define NK_INCLUDE_VERTEX_BUFFER_OUTPUT
+#define NK_INCLUDE_FONT_BAKING
+#define NK_IMPLEMENTATION
+#define NK_SDL_RENDERER_IMPLEMENTATION
+
 #include <errno.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -9,14 +17,6 @@
 #include <SDL.h>
 #include <SDL_image.h>
 
-#define NK_INCLUDE_FIXED_TYPES
-#define NK_INCLUDE_STANDARD_IO
-#define NK_INCLUDE_DEFAULT_ALLOCATOR
-#define NK_INCLUDE_VERTEX_BUFFER_OUTPUT
-#define NK_INCLUDE_FONT_BAKING
-#define NK_IMPLEMENTATION
-#define NK_SDL_RENDERER_IMPLEMENTATION
-
 #include <nuklear.h>
 #include <nuklear_sdl_renderer.h>
 
@@ -24,7 +24,20 @@
 #define VERSION "v0.1.0 alpha 3 preview"
 #define RELEASE_DATE "01/14/2026"
 
-static struct nk_context *nk_ctx;
+static uint32_t rng_state, rng_seed;
+
+void rng_srand(uint32_t seed) {
+    rng_seed = rng_state = seed == 0 ? (uint32_t)time(NULL) : seed;
+}
+
+uint32_t rng_rand(void) {
+    uint32_t rng_output = rng_state;
+    rng_output ^= rng_output >> 17;
+    rng_output ^= rng_output << 5;
+    rng_output ^= rng_output >> 13;
+    rng_state = rng_output;
+    return rng_output * 2654435771U;
+}
 
 #define WINDOW_WIDTH  1280
 #define WINDOW_HEIGHT 720
@@ -40,24 +53,11 @@ static struct nk_context *nk_ctx;
 
 #define FONT_SIZE 24
 
-static uint32_t rng_state, rng_seed;
-
-void my_srand(uint32_t seed) {
-    rng_seed = rng_state = seed == 0 ? (uint32_t)time(NULL) : seed;
-}
-
-uint32_t my_rand(void) {
-    uint32_t rng_output = rng_state;
-    rng_output ^= rng_output >> 17;
-    rng_output ^= rng_output << 5;
-    rng_output ^= rng_output >> 13;
-    rng_state = rng_output;
-    return rng_output * 2654435771U;
-}
-
 static SDL_Window *window;
 
 static SDL_Renderer *renderer;
+
+static struct nk_context *nk_ctx;
 
 static SDL_Texture *texture;
 
@@ -265,7 +265,7 @@ struct GUILabelElement {
 #define label_world_size_alignment NK_TEXT_ALIGN_LEFT
 #define label_world_size_active_ux_state UX_CREATION
 
-struct nk_rect label_world_size_pos() {
+struct nk_rect label_world_size_pos(void) {
     return nk_rect(
         window_w / 2 - 150,
         window_h / 2 - 72,
@@ -278,7 +278,7 @@ struct nk_rect label_world_size_pos() {
 #define label_seed_alignment NK_TEXT_ALIGN_LEFT
 #define label_seed_active_ux_state UX_CREATION
 
-struct nk_rect label_seed_pos() {
+struct nk_rect label_seed_pos(void) {
     return nk_rect(
         window_w / 2 - 150,
         window_h / 2 + 8,
@@ -291,7 +291,7 @@ struct nk_rect label_seed_pos() {
 #define label_mul_alignment NK_TEXT_ALIGN_CENTERED
 #define label_mul_active_ux_state UX_CREATION
 
-struct nk_rect label_mul_pos() {
+struct nk_rect label_mul_pos(void) {
     return nk_rect(
         window_w / 2 - 11,
         window_h / 2 - 32,
@@ -304,7 +304,7 @@ struct nk_rect label_mul_pos() {
 #define label_generating_alignment NK_TEXT_ALIGN_CENTERED
 #define label_generating_active_ux_state UX_GENERATION
 
-struct nk_rect label_generating_pos() {
+struct nk_rect label_generating_pos(void) {
     return nk_rect(
         10,
         window_h / 2 - 12,
@@ -317,7 +317,7 @@ struct nk_rect label_generating_pos() {
 #define label_version_alignment NK_TEXT_ALIGN_RIGHT
 #define label_version_active_ux_state UX_ANY
 
-struct nk_rect label_version_pos() {
+struct nk_rect label_version_pos(void) {
     return nk_rect(
         10,
         window_h - 58,
@@ -330,7 +330,7 @@ struct nk_rect label_version_pos() {
 #define label_release_date_alignment NK_TEXT_ALIGN_RIGHT
 #define label_release_date_active_ux_state UX_ANY
 
-struct nk_rect label_release_date_pos() {
+struct nk_rect label_release_date_pos(void) {
     return nk_rect(
         10,
         window_h - 34,
@@ -352,7 +352,7 @@ struct GUITextElement {
 #define text_error_alignment NK_TEXT_ALIGN_CENTERED
 #define text_error_active_ux_state UX_CREATION
 
-struct nk_rect text_error_pos() {
+struct nk_rect text_error_pos(void) {
     return nk_rect(
         window_w / 2 - 300,
         window_h / 2 + 200,
@@ -365,7 +365,7 @@ struct nk_rect text_error_pos() {
 #define text_zoom_alignment NK_TEXT_ALIGN_CENTERED
 #define text_zoom_active_ux_state UX_SIM
 
-struct nk_rect text_zoom_pos() {
+struct nk_rect text_zoom_pos(void) {
     return nk_rect(
         260,
         20,
@@ -378,7 +378,7 @@ struct nk_rect text_zoom_pos() {
 #define text_speed_alignment NK_TEXT_ALIGN_CENTERED
 #define text_speed_active_ux_state UX_SIM
 
-struct nk_rect text_speed_pos() {
+struct nk_rect text_speed_pos(void) {
     return nk_rect(
         500,
         20,
@@ -391,7 +391,7 @@ struct nk_rect text_speed_pos() {
 #define text_report_world_size_alignment NK_TEXT_ALIGN_LEFT
 #define text_report_world_size_active_ux_state UX_SIM
 
-struct nk_rect text_report_world_size_pos() {
+struct nk_rect text_report_world_size_pos(void) {
     return nk_rect(
         10,
         window_h - 106,
@@ -404,7 +404,7 @@ struct nk_rect text_report_world_size_pos() {
 #define text_report_seed_alignment NK_TEXT_ALIGN_LEFT
 #define text_report_seed_active_ux_state UX_SIM
 
-struct nk_rect text_report_seed_pos() {
+struct nk_rect text_report_seed_pos(void) {
     return nk_rect(
         10,
         window_h - 82,
@@ -417,7 +417,7 @@ struct nk_rect text_report_seed_pos() {
 #define text_report_gen_alignment NK_TEXT_ALIGN_LEFT
 #define text_report_gen_active_ux_state UX_SIM
 
-struct nk_rect text_report_gen_pos() {
+struct nk_rect text_report_gen_pos(void) {
     return nk_rect(
         10,
         window_h - 58,
@@ -430,10 +430,62 @@ struct nk_rect text_report_gen_pos() {
 #define text_report_live_cell_count_alignment NK_TEXT_ALIGN_LEFT
 #define text_report_live_cell_count_active_ux_state UX_SIM
 
-struct nk_rect text_report_live_cell_count_pos() {
+struct nk_rect text_report_live_cell_count_pos(void) {
     return nk_rect(
         10,
         window_h - 34,
+        window_w - 20,
+        24
+    );
+}
+
+#define text_report_pointer_pos_max 18
+#define text_report_pointer_pos_alignment NK_TEXT_ALIGN_LEFT
+#define text_report_pointer_pos_active_ux_state UX_SIM
+
+struct nk_rect text_report_pointer_pos_pos(void) {
+    return nk_rect(
+        10,
+        70,
+        window_w - 20,
+        24
+    );
+}
+
+#define text_report_curr_tile_energy_max 23
+#define text_report_curr_tile_energy_alignment NK_TEXT_ALIGN_LEFT
+#define text_report_curr_tile_energy_active_ux_state UX_SIM
+
+struct nk_rect text_report_curr_tile_energy_pos(void) {
+    return nk_rect(
+        10,
+        104,
+        window_w - 20,
+        24
+    );
+}
+
+#define text_report_curr_cell_age_max 20
+#define text_report_curr_cell_age_alignment NK_TEXT_ALIGN_LEFT
+#define text_report_curr_cell_age_active_ux_state UX_SIM
+
+struct nk_rect text_report_curr_cell_age_pos(void) {
+    return nk_rect(
+        10,
+        138,
+        window_w - 20,
+        24
+    );
+}
+
+#define text_report_curr_cell_energy_max 23
+#define text_report_curr_cell_energy_alignment NK_TEXT_ALIGN_LEFT
+#define text_report_curr_cell_energy_active_ux_state UX_SIM
+
+struct nk_rect text_report_curr_cell_energy_pos(void) {
+    return nk_rect(
+        10,
+        172,
         window_w - 20,
         24
     );
@@ -452,7 +504,7 @@ struct GUIInputElement {
 #define input_world_width_filter nk_filter_decimal
 #define input_world_width_active_ux_state UX_CREATION
 
-struct nk_rect input_world_width_pos() {
+struct nk_rect input_world_width_pos(void) {
     return nk_rect(
         window_w / 2 - 150,
         window_h / 2 - 40,
@@ -465,7 +517,7 @@ struct nk_rect input_world_width_pos() {
 #define input_world_height_filter nk_filter_decimal
 #define input_world_height_active_ux_state UX_CREATION
 
-struct nk_rect input_world_height_pos() {
+struct nk_rect input_world_height_pos(void) {
     return nk_rect(
         window_w / 2 + 16,
         window_h / 2 - 40,
@@ -478,7 +530,7 @@ struct nk_rect input_world_height_pos() {
 #define input_seed_filter nk_filter_decimal
 #define input_seed_active_ux_state UX_CREATION
 
-struct nk_rect input_seed_pos() {
+struct nk_rect input_seed_pos(void) {
     return nk_rect(
         window_w / 2 - 150,
         window_h / 2 + 40,
@@ -498,7 +550,7 @@ struct GUIButtonElement {
 #define button_generate_text "Generate"
 #define button_generate_active_ux_state UX_CREATION
 
-struct nk_rect button_generate_pos() {
+struct nk_rect button_generate_pos(void) {
     return nk_rect(
         window_w / 2 - 100,
         window_h / 2 + 120,
@@ -518,7 +570,7 @@ struct GUIIconButtonElement {
 #define icon_button_start_icon &icons[0]
 #define icon_button_start_active_ux_state UX_SIM
 
-struct nk_rect icon_button_start_pos() {
+struct nk_rect icon_button_start_pos(void) {
     return nk_rect(
         10,
         10,
@@ -530,7 +582,7 @@ struct nk_rect icon_button_start_pos() {
 #define icon_button_stop_icon &icons[1]
 #define icon_button_stop_active_ux_state UX_SIM
 
-struct nk_rect icon_button_stop_pos() {
+struct nk_rect icon_button_stop_pos(void) {
     return nk_rect(
         60,
         10,
@@ -542,7 +594,7 @@ struct nk_rect icon_button_stop_pos() {
 #define icon_button_step_icon &icons[2]
 #define icon_button_step_active_ux_state UX_SIM
 
-struct nk_rect icon_button_step_pos() {
+struct nk_rect icon_button_step_pos(void) {
     return nk_rect(
         110,
         10,
@@ -554,7 +606,7 @@ struct nk_rect icon_button_step_pos() {
 #define icon_button_zoom_in_icon &icons[3]
 #define icon_button_zoom_in_active_ux_state UX_SIM
 
-struct nk_rect icon_button_zoom_in_pos() {
+struct nk_rect icon_button_zoom_in_pos(void) {
     return nk_rect(
         210,
         10,
@@ -566,7 +618,7 @@ struct nk_rect icon_button_zoom_in_pos() {
 #define icon_button_zoom_out_icon &icons[4]
 #define icon_button_zoom_out_active_ux_state UX_SIM
 
-struct nk_rect icon_button_zoom_out_pos() {
+struct nk_rect icon_button_zoom_out_pos(void) {
     return nk_rect(
         350,
         10,
@@ -578,7 +630,7 @@ struct nk_rect icon_button_zoom_out_pos() {
 #define icon_button_speed_up_icon &icons[5]
 #define icon_button_speed_up_active_ux_state UX_SIM
 
-struct nk_rect icon_button_speed_up_pos() {
+struct nk_rect icon_button_speed_up_pos(void) {
     return nk_rect(
         450,
         10,
@@ -590,7 +642,7 @@ struct nk_rect icon_button_speed_up_pos() {
 #define icon_button_slow_down_icon &icons[6]
 #define icon_button_slow_down_active_ux_state UX_SIM
 
-struct nk_rect icon_button_slow_down_pos() {
+struct nk_rect icon_button_slow_down_pos(void) {
     return nk_rect(
         550,
         10,
@@ -602,7 +654,7 @@ struct nk_rect icon_button_slow_down_pos() {
 #define icon_button_quit_icon &icons[7]
 #define icon_button_quit_active_ux_state UX_SIM
 
-struct nk_rect icon_button_quit_pos() {
+struct nk_rect icon_button_quit_pos(void) {
     return nk_rect(
         window_w - 50,
         10,
@@ -621,7 +673,7 @@ struct GUIPanelElement {
 #define panel_controls_id "controls"
 #define panel_controls_active_ux_state UX_SIM
 
-struct nk_rect panel_controls_pos() {
+struct nk_rect panel_controls_pos(void) {
     return nk_rect(
         -2,
         -2,
@@ -838,6 +890,46 @@ static union GUIElement gui_elements[] = {
     {
         .text_element = {
             .type = GUI_TEXT,
+            .max = text_report_pointer_pos_max,
+            .buffer = NULL,
+            .alignment = text_report_pointer_pos_alignment,
+            .active_ux_state = text_report_pointer_pos_active_ux_state,
+            .pos = text_report_pointer_pos_pos
+        }
+    },
+    {
+        .text_element = {
+            .type = GUI_TEXT,
+            .max = text_report_curr_tile_energy_max,
+            .buffer = NULL,
+            .alignment = text_report_curr_tile_energy_alignment,
+            .active_ux_state = text_report_curr_tile_energy_active_ux_state,
+            .pos = text_report_curr_tile_energy_pos
+        }
+    },
+    {
+        .text_element = {
+            .type = GUI_TEXT,
+            .max = text_report_curr_cell_age_max,
+            .buffer = NULL,
+            .alignment = text_report_curr_cell_age_alignment,
+            .active_ux_state = text_report_curr_cell_age_active_ux_state,
+            .pos = text_report_curr_cell_age_pos
+        }
+    },
+    {
+        .text_element = {
+            .type = GUI_TEXT,
+            .max = text_report_curr_cell_energy_max,
+            .buffer = NULL,
+            .alignment = text_report_curr_cell_energy_alignment,
+            .active_ux_state = text_report_curr_cell_energy_active_ux_state,
+            .pos = text_report_curr_cell_energy_pos
+        }
+    },
+    {
+        .text_element = {
+            .type = GUI_TEXT,
             .max = text_report_world_size_max,
             .buffer = NULL,
             .alignment = text_report_world_size_alignment,
@@ -897,32 +989,36 @@ static union GUIElement gui_elements[] = {
 
 #define GUI_ELEMENT_COUNT sizeof(gui_elements) / sizeof(union GUIElement)
 
-#define label_world_size            gui_elements[0].label_element
-#define label_seed                  gui_elements[1].label_element
-#define label_mul                   gui_elements[2].label_element
-#define input_world_width           gui_elements[3].input_element
-#define input_world_height          gui_elements[4].input_element
-#define input_seed                  gui_elements[5].input_element
-#define button_generate             gui_elements[6].button_element
-#define text_error                  gui_elements[7].text_element
-#define label_generating            gui_elements[8].label_element
-#define panel_controls              gui_elements[9].panel_element
-#define icon_button_start           gui_elements[10].icon_button_element
-#define icon_button_stop            gui_elements[11].icon_button_element
-#define icon_button_step            gui_elements[12].icon_button_element
-#define icon_button_zoom_in         gui_elements[13].icon_button_element
-#define icon_button_zoom_out        gui_elements[14].icon_button_element
-#define text_zoom                   gui_elements[15].text_element
-#define icon_button_speed_up        gui_elements[16].icon_button_element
-#define icon_button_slow_down       gui_elements[17].icon_button_element
-#define text_speed                  gui_elements[18].text_element
-#define icon_button_quit            gui_elements[19].icon_button_element
-#define text_report_world_size      gui_elements[20].text_element
-#define text_report_seed            gui_elements[21].text_element
-#define text_report_gen             gui_elements[22].text_element
-#define text_report_live_cell_count gui_elements[23].text_element
-#define label_version               gui_elements[24].text_element
-#define label_release_date          gui_elements[25].text_element
+#define label_world_size             gui_elements[0].label_element
+#define label_seed                   gui_elements[1].label_element
+#define label_mul                    gui_elements[2].label_element
+#define input_world_width            gui_elements[3].input_element
+#define input_world_height           gui_elements[4].input_element
+#define input_seed                   gui_elements[5].input_element
+#define button_generate              gui_elements[6].button_element
+#define text_error                   gui_elements[7].text_element
+#define label_generating             gui_elements[8].label_element
+#define panel_controls               gui_elements[9].panel_element
+#define icon_button_start            gui_elements[10].icon_button_element
+#define icon_button_stop             gui_elements[11].icon_button_element
+#define icon_button_step             gui_elements[12].icon_button_element
+#define icon_button_zoom_in          gui_elements[13].icon_button_element
+#define icon_button_zoom_out         gui_elements[14].icon_button_element
+#define text_zoom                    gui_elements[15].text_element
+#define icon_button_speed_up         gui_elements[16].icon_button_element
+#define icon_button_slow_down        gui_elements[17].icon_button_element
+#define text_speed                   gui_elements[18].text_element
+#define icon_button_quit             gui_elements[19].icon_button_element
+#define text_report_pointer_pos      gui_elements[20].text_element
+#define text_report_curr_tile_energy gui_elements[21].text_element
+#define text_report_curr_cell_age    gui_elements[22].text_element
+#define text_report_curr_cell_energy gui_elements[23].text_element
+#define text_report_world_size       gui_elements[24].text_element
+#define text_report_seed             gui_elements[25].text_element
+#define text_report_gen              gui_elements[26].text_element
+#define text_report_live_cell_count  gui_elements[27].text_element
+#define label_version                gui_elements[28].text_element
+#define label_release_date           gui_elements[29].text_element
 
 static inline bool start_gui(void) {
     for (uint8_t i = 0; i < GUI_ELEMENT_COUNT; ++i) {
@@ -1162,13 +1258,13 @@ static struct World world;
 
 #define MAX_GENERATION_OPS_PER_TICK 1000000
 
-static bool generate() {
+static bool generate(void) {
     static uint16_t x = 0, y = 0;
     uint32_t operations = 0;
     for (; x < world.w; ++x) {
         for (; y < world.h; ++y) {
             struct Tile *tile = &tile_at(x, y);
-            uint32_t base = my_rand() % (77 * 76 / 2);
+            uint32_t base = rng_rand() % (77 * 76 / 2);
             for (uint32_t i = 0; i < 76; ++i) {
                 if (base < 76 - i) {
                     tile->energy = i;
@@ -1176,8 +1272,8 @@ static bool generate() {
                 }
                 base -= 76 - i;
             }
-            if (my_rand() % 50 == 0) {
-                tile->cell.energy = my_rand() % 6 + 5;
+            if (rng_rand() % 50 == 0) {
+                tile->cell.energy = rng_rand() % 6 + 5;
             }
             if (++operations > MAX_GENERATION_OPS_PER_TICK) {
                 return false;
@@ -1311,7 +1407,7 @@ static bool ux_creation(void) {
         if (errno != 0) {
             return false;
         }
-        my_srand(seed);
+        rng_srand(seed);
         world.tilemap =
             (struct Tile *)calloc(potential_w * potential_h, sizeof(struct Tile));
         if (!world.tilemap) {
@@ -1361,7 +1457,11 @@ static bool ux_sim(void) {
     static uint8_t zoom = DEFAULT_ZOOM, speed = DEFAULT_SPEED;
     static int32_t cam_x = 0, cam_y = 0, drag_x = 0, drag_y = 0;
     static uint16_t pointer_x = 0, pointer_y = 0;
-    static bool is_dragging = false, has_acted = true, auto_mode = false;
+    static bool
+        is_pointing = false,
+        is_dragging = false,
+        has_acted = false,
+        auto_mode = false;
     static uint32_t animation_tick = 0;
     if (!is_ready) {
         snprintf(
@@ -1423,7 +1523,6 @@ static bool ux_sim(void) {
         pointer_x = 0;
         pointer_y = 0;
         is_dragging = false;
-        has_acted = true;
         auto_mode = false;
         free(world.tilemap);
         world.tilemap = NULL;
@@ -1445,9 +1544,72 @@ static bool ux_sim(void) {
             (uint32_t)zoom
         );
     }
-    const uint32_t curr_tick = SDL_GetTicks();
     const struct nk_rect panel_controls_pos_rect = panel_controls.pos();
     const int32_t tile_w = TILE_WIDTH * zoom / 100, tile_h = TILE_HEIGHT * zoom / 100;
+    if (
+        mouse_x >= 0 &&
+        mouse_y >= panel_controls_pos_rect.h &&
+        mouse_x < window_w &&
+        mouse_y < window_h
+    ) {
+        const int32_t
+            disp_x = mouse_x - cam_x,
+            disp_y = mouse_y - panel_controls_pos_rect.h - cam_y;
+        if (
+            disp_x >= 0 &&
+            disp_y >= 0 &&
+            disp_x < world.w * tile_w &
+            disp_y < world.h * tile_h
+        ) {
+            pointer_x = disp_x / tile_w;
+            pointer_y = disp_y / tile_h;
+            is_pointing = true;
+            snprintf(
+                text_report_pointer_pos.buffer,
+                text_report_pointer_pos_max + 1,
+                "X: %u; Y: %u",
+                (uint32_t)pointer_x,
+                (uint32_t)pointer_y
+            );
+            struct Tile *tile = &tile_at(pointer_x, pointer_y);
+            snprintf(
+                text_report_curr_tile_energy.buffer,
+                text_report_curr_tile_energy_max + 1,
+                "Tile energy: %u",
+                (uint32_t)tile->energy
+            );
+            if (tile->cell.energy != 0) {
+                snprintf(
+                    text_report_curr_cell_age.buffer,
+                    text_report_curr_cell_age_max + 1,
+                    "Cell age: %u",
+                    (uint32_t)tile->cell.age
+                );
+                snprintf(
+                    text_report_curr_cell_energy.buffer,
+                    text_report_curr_cell_energy_max + 1,
+                    "Cell energy: %u",
+                    (uint32_t)tile->cell.energy
+                );
+            } else {
+                snprintf(
+                    text_report_curr_cell_age.buffer,
+                    text_report_curr_cell_age_max + 1,
+                    ""
+                );
+                snprintf(
+                    text_report_curr_cell_energy.buffer,
+                    text_report_curr_cell_energy_max + 1,
+                    ""
+                );
+            }
+        } else {
+            is_pointing = false;
+        }
+    } else {
+        is_pointing = false;
+    }
+    const uint32_t curr_tick = SDL_GetTicks();
     if (icon_button_step.is_pressed) {
         if (!has_acted && animation_tick == 0) {
             advance();
@@ -1458,7 +1620,9 @@ static bool ux_sim(void) {
         if (!has_acted && zoom < MAX_ZOOM) {
             const uint8_t new_zoom = zoom + ZOOM_SPEED;
             const double factor = (double)new_zoom / zoom;
-            const int32_t center_x = window_w / 2, center_y = window_h / 2;
+            const int32_t
+                center_x = window_w / 2,
+                center_y = (window_h - panel_controls_pos_rect.h) / 2;
             cam_x = (cam_x - center_x) * factor + center_x;
             cam_y = (cam_y - center_y) * factor + center_y;
             zoom = new_zoom;
@@ -1474,7 +1638,9 @@ static bool ux_sim(void) {
         if (!has_acted && zoom > MIN_ZOOM) {
             const uint8_t new_zoom = zoom - ZOOM_SPEED;
             const double factor = (double)new_zoom / zoom;
-            const int32_t center_x = window_w / 2, center_y = window_h / 2;
+            const int32_t
+                center_x = window_w / 2,
+                center_y = (window_h - panel_controls_pos_rect.h) / 2;
             cam_x = (cam_x - center_x) * factor + center_x;
             cam_y = (cam_y - center_y) * factor + center_y;
             zoom = new_zoom;
@@ -1506,28 +1672,6 @@ static bool ux_sim(void) {
                 "%ux",
                 (uint32_t)speed
             );
-        }
-        has_acted = true;
-    } else if (
-        mouse_state & SDL_BUTTON(SDL_BUTTON_LEFT) &&
-        mouse_x >= 0 &&
-        mouse_y >= panel_controls_pos_rect.h &&
-        mouse_x < window_w &&
-        mouse_y < window_h
-    ) {
-        if (!has_acted) {
-            const int32_t
-                disp_x = mouse_x - cam_x,
-                disp_y = mouse_y - panel_controls_pos_rect.h - cam_y;
-            if (
-                disp_x >= 0 &&
-                disp_y >= 0 &&
-                disp_x < world.w * tile_w &
-                disp_y < world.h * tile_h
-            ) {
-                pointer_x = disp_x / tile_w;
-                pointer_y = disp_y / tile_h;
-            }
         }
         has_acted = true;
     } else {
@@ -1716,6 +1860,9 @@ static bool ux_sim(void) {
                 }
             }
         }
+    }
+    if (!is_pointing) {
+        return true;
     }
     dstrect.x = (uint32_t)pointer_x * tile_w + cam_x;
     dstrect.y = (uint32_t)pointer_y * tile_h + panel_controls_pos_rect.h + cam_y;
