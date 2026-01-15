@@ -29,3 +29,19 @@ All notable changes to this project will be documented here.
 - Fixed minor issues regarding zooming.
 
 - Plus many other small corrections...
+
+### v0.1.0 alpha 3 - 01/15/2026
+
+#### Added:
+
+- Added the ability to see the coords and energy of the tile the mouse is hovering over, as well as the age and energy of the cell on it, if there is one currently alive on the tile.
+
+#### Changed:
+
+- Reworked texture rendering.
+
+- Plus many other small tweaks...
+
+#### Fixed:
+
+- Many small corrections...

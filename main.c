@@ -21,8 +21,8 @@
 #include <nuklear_sdl_renderer.h>
 
 #define TITLE "evolution-sim"
-#define VERSION "v0.1.0 alpha 3 preview"
-#define RELEASE_DATE "01/14/2026"
+#define VERSION "v0.1.0 alpha 3"
+#define RELEASE_DATE "01/15/2026"
 
 static uint32_t rng_state, rng_seed;
 
@@ -1558,7 +1558,7 @@ static bool ux_sim(void) {
         if (
             disp_x >= 0 &&
             disp_y >= 0 &&
-            disp_x < world.w * tile_w &
+            disp_x < world.w * tile_w &&
             disp_y < world.h * tile_h
         ) {
             pointer_x = disp_x / tile_w;
@@ -1592,15 +1592,15 @@ static bool ux_sim(void) {
                     (uint32_t)tile->cell.energy
                 );
             } else {
-                snprintf(
+                memset(
                     text_report_curr_cell_age.buffer,
-                    text_report_curr_cell_age_max + 1,
-                    ""
+                    0,
+                    text_report_curr_cell_age_max
                 );
-                snprintf(
+                memset(
                     text_report_curr_cell_energy.buffer,
-                    text_report_curr_cell_energy_max + 1,
-                    ""
+                    0,
+                    text_report_curr_cell_energy_max
                 );
             }
         } else {
