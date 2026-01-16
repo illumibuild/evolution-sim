@@ -1430,6 +1430,7 @@ static bool ux_creation(void) {
         if (errno != 0) {
             return false;
         }
+        errno = 0;
         potential_h = strtoumax(input_world_height.buffer, NULL, 10);
         if (errno != 0) {
             return false;
@@ -1445,13 +1446,14 @@ static bool ux_creation(void) {
     if (button_generate.is_pressed) {
         errno = 0;
         const uint32_t seed = input_seed.buffer[0] == '\0' ?
-            0 : (uint32_t)strtoumax(input_seed.buffer, NULL, 10);
+            0 : strtoumax(input_seed.buffer, NULL, 10);
         if (errno != 0) {
             return false;
         }
         rng_srand(seed);
-        world.tilemap =
-            (struct Tile *)calloc(potential_w * potential_h, sizeof(struct Tile));
+        world.tilemap = (struct Tile *)calloc(
+            (uint32_t)potential_w * (uint32_t)potential_h, sizeof(struct Tile)
+        );
         if (!world.tilemap) {
             snprintf(
                 text_error.buffer,
