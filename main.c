@@ -1324,7 +1324,7 @@ struct CellAction *cell_deaths = NULL, *cell_divisions = NULL;
 
 uint32_t cell_deaths_cap = 1, cell_divisions_cap = 1;
 
-bool advancement_error = false;
+bool alloc_error = false;
 
 static void advance(void) {
     ++world.gen;
@@ -1359,7 +1359,7 @@ static void advance(void) {
                         (cell_deaths_cap *= 2) * sizeof(struct CellAction)
                     );
                     if (!cell_deaths) {
-                        advancement_error = true;
+                        alloc_error = true;
                         return;
                     }
                 }
@@ -1399,7 +1399,7 @@ static void advance(void) {
                             (cell_divisions_cap *= 2) * sizeof(struct CellAction)
                         );
                         if (!cell_divisions) {
-                            advancement_error = true;
+                            alloc_error = true;
                             return;
                         }
                     }
@@ -1999,7 +1999,7 @@ int main() {
             quit();
             return 1;
         } else if (ux_state == UX_SIM) {
-            if (advancement_error) {
+            if (alloc_error) {
                 end_gui();
                 quit();
                 return 1;
