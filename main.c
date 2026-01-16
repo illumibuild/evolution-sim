@@ -21,7 +21,7 @@
 #include <nuklear_sdl_renderer.h>
 
 #define TITLE "evolution-sim"
-#define VERSION "v0.1.0 beta 1"
+#define VERSION "v0.1.0 beta 2 preview"
 #define RELEASE_DATE "01/16/2026"
 
 static uint32_t rng_state, rng_seed;
@@ -1272,6 +1272,9 @@ static struct World world;
 
 #define tile_at(x, y) world.tilemap[(y) * (uint32_t)world.w + (x)]
 
+#define GENERATION_TILE_INIT_ENERGY_CAP 75
+#define GENERATION_TILE_INIT_ENERGY_SUM (77 * 76 / 2)
+
 #define MAX_GENERATION_OPS_PER_TICK 1000000
 
 static bool generate(void) {
@@ -1279,20 +1282,20 @@ static bool generate(void) {
     uint32_t operations = 0;
     for (; x < world.w; ++x) {
         for (; y < world.h; ++y) {
+            if (++operations > MAX_GENERATION_OPS_PER_TICK) {
+                return false;
+            }
             struct Tile *tile = &tile_at(x, y);
-            uint32_t base = rng_rand() % (77 * 76 / 2);
-            for (uint32_t i = 0; i < 76; ++i) {
-                if (base < 76 - i) {
+            uint32_t base = rng_rand() % GENERATION_TILE_INIT_ENERGY_SUM;
+            for (uint32_t i = 0; i <= GENERATION_TILE_INIT_ENERGY_CAP; ++i) {
+                if (base <= GENERATION_TILE_INIT_ENERGY_CAP - i) {
                     tile->energy = i;
                     break;
                 }
-                base -= 76 - i;
+                base -= GENERATION_TILE_INIT_ENERGY_CAP + 1 - i;
             }
             if (rng_rand() % 50 == 0) {
                 tile->cell.energy = rng_rand() % 6 + 5;
-            }
-            if (++operations > MAX_GENERATION_OPS_PER_TICK) {
-                return false;
             }
         }
         y = 0;
@@ -1319,6 +1322,10 @@ uint32_t live_cell_count, dying_cell_count, born_cell_count;
 
 struct CellAction *cell_deaths = NULL, *cell_divisions = NULL;
 
+uint32_t cell_deaths_cap = 1, cell_divisions_cap = 1;
+
+bool advancement_error = false;
+
 static void advance(void) {
     ++world.gen;
     free(cell_deaths);
@@ -1328,6 +1335,8 @@ static void advance(void) {
     born_cell_count = 0;
     cell_deaths = NULL;
     cell_divisions = NULL;
+    cell_deaths_cap = 1;
+    cell_divisions_cap = 1;
     for (uint16_t x = 0; x < world.w; ++x) {
         for (uint16_t y = 0; y < world.h; ++y) {
             struct Tile *const tile = &tile_at(x, y);
@@ -1344,9 +1353,17 @@ static void advance(void) {
             tile->energy -= actual_harvested_energy;
             tile->cell.energy += actual_harvested_energy;
             if (--tile->cell.energy == 0) {
-                cell_deaths = (struct CellAction *)realloc(
-                    cell_deaths, ++dying_cell_count * sizeof(struct CellAction)
-                );
+                if (!cell_deaths || dying_cell_count == cell_deaths_cap) {
+                    cell_deaths = (struct CellAction *)realloc(
+                        cell_deaths,
+                        (cell_deaths_cap *= 2) * sizeof(struct CellAction)
+                    );
+                    if (!cell_deaths) {
+                        advancement_error = true;
+                        return;
+                    }
+                }
+                ++dying_cell_count;
                 cell_deaths[dying_cell_count - 1].x = x;
                 cell_deaths[dying_cell_count - 1].y = y;
                 cell_deaths[dying_cell_count - 1].direction = DIRECTION_NONE;
@@ -1357,7 +1374,7 @@ static void advance(void) {
                 struct Tile *selected_tile = NULL;
                 struct Tile *const adjacent_tiles[4]= {
                     y > 0 ? &tile_at(x, y - 1) : NULL,
-                    x < world.w ? &tile_at(x + 1, y) : NULL,
+                    x < world.w - 1 ? &tile_at(x + 1, y) : NULL,
                     y < world.h - 1 ? &tile_at(x, y + 1) : NULL,
                     x > 0 ? &tile_at(x - 1, y) : NULL
                 };
@@ -1376,9 +1393,17 @@ static void advance(void) {
                     }
                 }
                 if (selected_tile) {
-                    cell_divisions = (struct CellAction *)realloc(
-                        cell_divisions, ++born_cell_count * sizeof(struct CellAction)
-                    );
+                    if (!cell_divisions || born_cell_count == cell_divisions_cap) {
+                        cell_divisions = (struct CellAction *)realloc(
+                            cell_divisions,
+                            (cell_divisions_cap *= 2) * sizeof(struct CellAction)
+                        );
+                        if (!cell_divisions) {
+                            advancement_error = true;
+                            return;
+                        }
+                    }
+                    ++born_cell_count;
                     cell_divisions[born_cell_count - 1].x = x;
                     cell_divisions[born_cell_count - 1].y = y;
                     cell_divisions[born_cell_count - 1].direction = direction;
@@ -1390,6 +1415,7 @@ static void advance(void) {
             }
         }
     }
+    return;
 }
 
 bool is_running = true;
@@ -1966,10 +1992,16 @@ int main() {
     }
     while (is_running) {
         if (!tick()) {
+            fprintf(stderr, "%s\n", SDL_GetError());
             end_gui();
             quit();
-            fprintf(stderr, "%s\n", SDL_GetError());
             return 1;
+        } else if (ux_state == UX_SIM) {
+            if (advancement_error) {
+                end_gui();
+                quit();
+                return 1;
+            }
         }
     }
     free(world.tilemap);
