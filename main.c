@@ -21,22 +21,20 @@
 #include <nuklear_sdl_renderer.h>
 
 #define TITLE "evolution-sim"
-#define VERSION "v0.1.0 alpha 3"
-#define RELEASE_DATE "01/15/2026"
+#define VERSION "v0.1.0 beta 1 preview"
+#define RELEASE_DATE "01/16/2026"
 
 static uint32_t rng_state, rng_seed;
 
 void rng_srand(uint32_t seed) {
-    rng_seed = rng_state = seed == 0 ? (uint32_t)time(NULL) : seed;
+    rng_state = rng_seed = seed == 0 ? (uint32_t)time(NULL) : seed;
 }
 
 uint32_t rng_rand(void) {
-    uint32_t rng_output = rng_state;
-    rng_output ^= rng_output >> 17;
-    rng_output ^= rng_output << 5;
-    rng_output ^= rng_output >> 13;
-    rng_state = rng_output;
-    return rng_output * 2654435771U;
+    uint32_t rng_output = (rng_state += 0x9E3779B9);
+    rng_output = (rng_output ^ (rng_output >> 16)) * 0x85EBCA6B;
+    rng_output = (rng_output ^ (rng_output >> 13)) * 0xC2B2AE35;
+    return rng_output ^ (rng_output >> 16);
 }
 
 #define WINDOW_WIDTH  1280
@@ -201,6 +199,9 @@ static inline bool init(void) {
         NULL
     );
     nk_sdl_font_stash_end();
+    if (!font) {
+        return false;
+    }
     nk_style_set_font(nk_ctx, &font->handle);
     for (uint8_t i = 0; i < ICON_COUNT; ++i) {
         SDL_Surface *icon_surface = IMG_Load(icon_paths[i]);
@@ -221,11 +222,9 @@ static inline bool init(void) {
 static inline void quit(void) {
     for (uint8_t i = 0; i < ICON_COUNT; ++i) {
         SDL_DestroyTexture(icon_textures[i]);
-        icon_textures[i] = NULL;
     }
     nk_font_atlas_cleanup(font_atlas);
     SDL_DestroyTexture(texture);
-    texture = NULL;
     nk_sdl_shutdown();
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
@@ -989,16 +988,16 @@ static union GUIElement gui_elements[] = {
 
 #define GUI_ELEMENT_COUNT sizeof(gui_elements) / sizeof(union GUIElement)
 
-#define label_world_size             gui_elements[0].label_element
-#define label_seed                   gui_elements[1].label_element
-#define label_mul                    gui_elements[2].label_element
-#define input_world_width            gui_elements[3].input_element
-#define input_world_height           gui_elements[4].input_element
-#define input_seed                   gui_elements[5].input_element
-#define button_generate              gui_elements[6].button_element
-#define text_error                   gui_elements[7].text_element
-#define label_generating             gui_elements[8].label_element
-#define panel_controls               gui_elements[9].panel_element
+#define label_world_size             gui_elements[ 0].label_element
+#define label_seed                   gui_elements[ 1].label_element
+#define label_mul                    gui_elements[ 2].label_element
+#define input_world_width            gui_elements[ 3].input_element
+#define input_world_height           gui_elements[ 4].input_element
+#define input_seed                   gui_elements[ 5].input_element
+#define button_generate              gui_elements[ 6].button_element
+#define text_error                   gui_elements[ 7].text_element
+#define label_generating             gui_elements[ 8].label_element
+#define panel_controls               gui_elements[ 9].panel_element
 #define icon_button_start            gui_elements[10].icon_button_element
 #define icon_button_stop             gui_elements[11].icon_button_element
 #define icon_button_step             gui_elements[12].icon_button_element
@@ -1096,7 +1095,9 @@ static inline void do_gui(void) {
                         ux_state != gui_text_element->active_ux_state &&
                         gui_text_element->active_ux_state != UX_ANY
                     ) {
-                        memset(gui_text_element->buffer, '\0', gui_text_element->max);
+                        if (gui_text_element->buffer[0] != '\0') {
+                            memset(gui_text_element->buffer, '\0', gui_text_element->max);
+                        }
                         continue;
                     }
                     nk_layout_space_push(
@@ -1119,7 +1120,9 @@ static inline void do_gui(void) {
                         ux_state != gui_input_element->active_ux_state &&
                         gui_input_element->active_ux_state != UX_ANY
                     ) {
-                        memset(gui_input_element->buffer, '\0', gui_input_element->max);
+                        if (gui_input_element->buffer[0] != '\0') {
+                            memset(gui_input_element->buffer, '\0', gui_input_element->max);
+                        }
                         continue;
                     }
                     nk_layout_space_push(
@@ -1230,9 +1233,22 @@ static inline void do_gui(void) {
 
 static inline void end_gui(void) {
     for (uint8_t i = 0; i < GUI_ELEMENT_COUNT; ++i) {
-        if (gui_elements[i].type == GUI_INPUT) {
-            struct GUIInputElement *gui_input_element = &gui_elements[i].input_element;
-            free(gui_input_element->buffer);
+        switch (gui_elements[i].type) {
+        case GUI_TEXT:
+            {
+                struct GUITextElement *gui_text_element =
+                    &gui_elements[i].text_element;
+                free(gui_text_element->buffer);
+            }
+            break;
+        case GUI_INPUT:
+            {
+                struct GUIInputElement *gui_input_element =
+                    &gui_elements[i].input_element;
+                free(gui_input_element->buffer);
+            }
+            break;
+        default:;
         }
     }
 }
@@ -1594,12 +1610,12 @@ static bool ux_sim(void) {
             } else {
                 memset(
                     text_report_curr_cell_age.buffer,
-                    0,
+                    '\0',
                     text_report_curr_cell_age_max
                 );
                 memset(
                     text_report_curr_cell_energy.buffer,
-                    0,
+                    '\0',
                     text_report_curr_cell_energy_max
                 );
             }
