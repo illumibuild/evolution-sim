@@ -45,3 +45,15 @@ All notable changes to this project will be documented here.
 #### Fixed:
 
 - Many small corrections...
+
+### v0.1.0 beta 1 - 01/16/2026
+
+#### Changed:
+
+- Switched from modified XorShift32 to SplitMix32 PRNG for better pseudorandomness.
+
+#### Fixed:
+
+- Added additional cleanups before the program quits with an error.
+
+- Plus many other small corrections...
