@@ -1900,7 +1900,7 @@ static bool ux_sim(void) {
 }
 
 static inline bool tick(void) {
-    SDL_GetWindowSize(window, (int *)&window_w, (int *)&window_h);
+    SDL_GetWindowSize(window, &window_w, &window_h);
     scroll_x = 0;
     scroll_y = 0;
     SDL_Event ev;
@@ -1908,6 +1908,7 @@ static inline bool tick(void) {
     while (SDL_PollEvent(&ev)) {
         switch (ev.type) {
         case SDL_QUIT:
+            nk_input_end(nk_ctx);
             is_running = false;
             return true;
         case SDL_MOUSEWHEEL:
