@@ -1961,10 +1961,13 @@ int main() {
         fprintf(stderr, "%s\n", SDL_GetError());
         return 1;
     } else if (!start_gui()) {
+        quit();
         return 1;
     }
     while (is_running) {
         if (!tick()) {
+            end_gui();
+            quit();
             fprintf(stderr, "%s\n", SDL_GetError());
             return 1;
         }
