@@ -65,3 +65,15 @@ All notable changes to this project will be documented here.
 - Fixed zooming bugs.
 
 - Plus many other small corrections...
+
+### v0.1.0 beta 3 - 01/17/2026
+
+#### Changed:
+
+- Revamped icons.
+
+- Switched to a new texture atlas system for better space optimization.
+
+#### Fixed:
+
+- Fixed a long-term bug with world generation, where the chance for a live cell to spawn on a tile was 2% for each tile, even though it was supposed to be 10% according to the official written rule.
