@@ -22,7 +22,7 @@
 
 #define TITLE "evolution-sim"
 #define VERSION "v0.1.0 beta 2 preview"
-#define RELEASE_DATE "01/16/2026"
+#define RELEASE_DATE "01/17/2026"
 
 static uint32_t rng_state, rng_seed;
 
@@ -1548,6 +1548,7 @@ static bool ux_sim(void) {
             "Live cells: %u",
             live_cell_count
         );
+        last_gen = world.gen;
     }
     icon_button_start.is_enabled = !auto_mode;
     icon_button_stop.is_enabled = auto_mode;
@@ -1575,11 +1576,23 @@ static bool ux_sim(void) {
     }
     int32_t mouse_x, mouse_y;
     uint32_t mouse_state = SDL_GetMouseState((int *)&mouse_x, (int *)&mouse_y);
-    if ((scroll_y > 0 && zoom < MAX_ZOOM) || (scroll_y < 0 && zoom > MIN_ZOOM)) {
+    const struct nk_rect panel_controls_pos_rect = panel_controls.pos();
+    if (
+        mouse_x >= 0 &&
+        mouse_y >= panel_controls_pos_rect.h &&
+        mouse_x < window_w &&
+        mouse_y < window_h &&
+        (
+            (scroll_y > 0 && zoom < MAX_ZOOM) ||
+            (scroll_y < 0 && zoom > MIN_ZOOM)
+        )
+    ) {
         const uint8_t new_zoom = zoom + (scroll_y < 0 ? -ZOOM_SPEED : ZOOM_SPEED);
         const double factor = (double)new_zoom / zoom;
         cam_x = (cam_x - mouse_x) * factor + mouse_x;
-        cam_y = (cam_y - mouse_y) * factor + mouse_y;
+        cam_y =
+            (cam_y + panel_controls_pos_rect.h - mouse_y) *
+            factor - panel_controls_pos_rect.h + mouse_y;
         zoom = new_zoom;
         snprintf(
             text_zoom.buffer,
@@ -1588,7 +1601,6 @@ static bool ux_sim(void) {
             (uint32_t)zoom
         );
     }
-    const struct nk_rect panel_controls_pos_rect = panel_controls.pos();
     const int32_t tile_w = TILE_WIDTH * zoom / 100, tile_h = TILE_HEIGHT * zoom / 100;
     if (
         mouse_x >= 0 &&
@@ -1798,13 +1810,17 @@ static bool ux_sim(void) {
             ) {
                 continue;
             }
+            struct Tile *tile = &tile_at(x, y);
             if (
                 SDL_SetRenderDrawColor(
                     renderer,
                     COLOR_CUSTOM_QUALITY.r,
                     COLOR_CUSTOM_QUALITY.g,
                     COLOR_CUSTOM_QUALITY.b,
-                    0x02 * (tile_at(x, y).energy < 76 ? tile_at(x, y).energy : 76)
+                    0x02 * (
+                        tile->energy <= GENERATION_TILE_INIT_ENERGY_CAP ?
+                        tile->energy : GENERATION_TILE_INIT_ENERGY_CAP + 1
+                    )
                 ) != 0 ||
                 SDL_RenderFillRect(renderer, &dstrect) != 0
             ) {
@@ -1817,7 +1833,7 @@ static bool ux_sim(void) {
             if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
                 return false;
             }
-            if (tile_at(x, y).cell.energy != 0) {
+            if (tile->cell.energy != 0) {
                 select_still_frame(
                     &srcrect,
                     STILL_CELL
