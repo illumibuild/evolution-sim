@@ -21,7 +21,7 @@
 #include <nuklear_sdl_renderer.h>
 
 #define TITLE "evolution-sim"
-#define VERSION "v0.1.0 beta 2"
+#define VERSION "v0.1.0 beta 3 preview"
 #define RELEASE_DATE "01/17/2026"
 
 static uint32_t rng_state, rng_seed;
@@ -46,6 +46,9 @@ uint32_t rng_rand(void) {
 #define TILE_WIDTH  180
 #define TILE_HEIGHT 180
 
+#define ICON_WIDTH  30
+#define ICON_HEIGHT 30
+
 #define ANIMATION_MS 500
 #define ANIMATION_FPS 8
 
@@ -63,22 +66,7 @@ static struct nk_font *font;
 
 static struct nk_font_atlas *font_atlas;
 
-static const char *const icon_paths[] = {
-    "resources/icons/start.png",
-    "resources/icons/stop.png",
-    "resources/icons/step.png",
-    "resources/icons/zoom_in.png",
-    "resources/icons/zoom_out.png",
-    "resources/icons/speed_up.png",
-    "resources/icons/slow_down.png",
-    "resources/icons/quit.png"
-};
-
-#define ICON_COUNT sizeof(icon_paths) / sizeof(const char *)
-
-static SDL_Texture *icon_textures[ICON_COUNT];
-
-static struct nk_image icons[ICON_COUNT];
+static struct nk_image icons[8];
 
 #define STILL_TILE     0
 #define STILL_CELL     1
@@ -149,8 +137,8 @@ static inline void nk_skin(void) {
     style_button_disabled.active.data.color = COLOR_TRIGGER;
 }
 
-#define TEXTURE_PATH "resources/texture_atlas.png"
-#define FONT_PATH    "resources/Ubuntu-R.ttf"
+#define TEXTURE_PATH "texture_atlas.png"
+#define FONT_PATH    "Ubuntu-R.ttf"
 
 static inline bool init(void) {
     if (
@@ -203,26 +191,28 @@ static inline bool init(void) {
         return false;
     }
     nk_style_set_font(nk_ctx, &font->handle);
-    for (uint8_t i = 0; i < ICON_COUNT; ++i) {
-        SDL_Surface *icon_surface = IMG_Load(icon_paths[i]);
-        if (!icon_surface) {
-            return false;
-        }
-        icon_textures[i] = SDL_CreateTextureFromSurface(renderer, icon_surface);
-        SDL_FreeSurface(icon_surface);
-        if (!icon_textures[i]) {
-            return false;
-        }
-        icons[i] = nk_image_ptr(icon_textures[i]);
+    int32_t texture_w, texture_h;
+    if (SDL_QueryTexture(texture, NULL, NULL, &texture_w, &texture_h) != 0) {
+        return false;
+    }
+    for (uint8_t i = 0; i < sizeof(icons) / sizeof(struct nk_image); ++i) {
+        icons[i] = nk_subimage_ptr(
+            texture,
+            texture_w,
+            texture_h,
+            nk_rect(
+                i * ICON_WIDTH,
+                texture_h / TILE_HEIGHT * TILE_HEIGHT,
+                ICON_WIDTH,
+                ICON_HEIGHT
+            )
+        );
     }
     nk_skin();
     return true;
 }
 
 static inline void quit(void) {
-    for (uint8_t i = 0; i < ICON_COUNT; ++i) {
-        SDL_DestroyTexture(icon_textures[i]);
-    }
     nk_font_atlas_cleanup(font_atlas);
     SDL_DestroyTexture(texture);
     nk_sdl_shutdown();
@@ -1575,7 +1565,7 @@ static bool ux_sim(void) {
         return true;
     }
     int32_t mouse_x, mouse_y;
-    uint32_t mouse_state = SDL_GetMouseState((int *)&mouse_x, (int *)&mouse_y);
+    uint32_t mouse_state = SDL_GetMouseState(&mouse_x, &mouse_y);
     const struct nk_rect panel_controls_pos_rect = panel_controls.pos();
     if (
         mouse_x >= 0 &&
