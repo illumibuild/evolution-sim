@@ -21,7 +21,7 @@
 #include <nuklear_sdl_renderer.h>
 
 #define TITLE "evolution-sim"
-#define VERSION "v0.1.0 beta 2 preview"
+#define VERSION "v0.1.0 beta 2"
 #define RELEASE_DATE "01/17/2026"
 
 static uint32_t rng_state, rng_seed;

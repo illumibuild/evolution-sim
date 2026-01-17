@@ -57,3 +57,11 @@ All notable changes to this project will be documented here.
 - Added additional cleanups before the program quits with an error.
 
 - Plus many other small corrections...
+
+### v0.1.0 beta 2 - 01/17/2026
+
+#### Fixed:
+
+- Fixed zooming bugs.
+
+- Plus many other small corrections...
