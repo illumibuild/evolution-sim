@@ -1284,7 +1284,7 @@ static bool generate(void) {
                 }
                 base -= GENERATION_TILE_INIT_ENERGY_CAP + 1 - i;
             }
-            if (rng_rand() % 50 == 0) {
+            if (rng_rand() % 10 == 0) {
                 tile->cell.energy = rng_rand() % 6 + 5;
             }
         }
