@@ -21,7 +21,7 @@
 #include <nuklear_sdl_renderer.h>
 
 #define TITLE "evolution-sim"
-#define VERSION "v0.1.0 beta 3"
+#define VERSION "v0.1.0 preview"
 #define RELEASE_DATE "01/17/2026"
 
 static uint32_t rng_state, rng_seed;
@@ -1591,7 +1591,9 @@ static bool ux_sim(void) {
             (uint32_t)zoom
         );
     }
-    const int32_t tile_w = TILE_WIDTH * zoom / 100, tile_h = TILE_HEIGHT * zoom / 100;
+    const int32_t
+        tile_w = TILE_WIDTH * zoom / 100,
+        tile_h = TILE_HEIGHT * zoom / 100;
     if (
         mouse_x >= 0 &&
         mouse_y >= panel_controls_pos_rect.h &&
@@ -1705,7 +1707,7 @@ static bool ux_sim(void) {
                 text_speed.buffer,
                 text_speed_max + 1,
                 "%ux",
-                (uint32_t)speed
+                (uint32_t)speed % 10
             );
         }
         has_acted = true;
@@ -1716,7 +1718,7 @@ static bool ux_sim(void) {
                 text_speed.buffer,
                 text_speed_max + 1,
                 "%ux",
-                (uint32_t)speed
+                (uint32_t)speed % 10
             );
         }
         has_acted = true;
@@ -1790,8 +1792,8 @@ static bool ux_sim(void) {
         dstrect = { .w = tile_w,     .h = tile_h      };
     for (uint16_t x = 0; x < world.w; ++x) {
         for (uint16_t y = 0; y < world.h; ++y) {
-            dstrect.x = (uint32_t)x * tile_w + cam_x;
-            dstrect.y = (uint32_t)y * tile_h + panel_controls_pos_rect.h + cam_y;
+            dstrect.x = (int32_t)x * tile_w + cam_x;
+            dstrect.y = (int32_t)y * tile_h + panel_controls_pos_rect.h + cam_y;
             if (
                 dstrect.x + dstrect.w < 0 ||
                 dstrect.y + dstrect.h < 0 ||
@@ -1914,8 +1916,8 @@ static bool ux_sim(void) {
     if (!is_pointing) {
         return true;
     }
-    dstrect.x = (uint32_t)pointer_x * tile_w + cam_x;
-    dstrect.y = (uint32_t)pointer_y * tile_h + panel_controls_pos_rect.h + cam_y;
+    dstrect.x = (int32_t)pointer_x * tile_w + cam_x;
+    dstrect.y = (int32_t)pointer_y * tile_h + panel_controls_pos_rect.h + cam_y;
     if (
         dstrect.x + dstrect.w >= 0 &&
         dstrect.y + dstrect.h >= 0 &&
