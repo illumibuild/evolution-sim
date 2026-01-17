@@ -77,3 +77,5 @@ All notable changes to this project will be documented here.
 #### Fixed:
 
 - Fixed a long-term bug with world generation, where the chance for a live cell to spawn on a tile was 2% for each tile, even though it was supposed to be 10% according to the official written rule.
+
+### v0.1.0 - 01/17/2026

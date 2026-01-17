@@ -96,7 +96,7 @@ Both new cells start at **0 age**.
 
 I'm working on this project solo.
 I was inspired by Conway's game of life, and decided to make something more complex and "alive", less order-based and more chaos-based.
-The rendering engine is written in C with SDL2 and SDL2_image for graphics and Nuklear for GUI.
+The rendering engine is written in C with SDL2 and SDL2_image for graphics and Nuklear for the GUI.
 It currently lacks a mipmap system, so zooming out too far causes performance issues.
 
 ## Future plans
