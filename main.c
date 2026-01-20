@@ -21,8 +21,8 @@
 #include <nuklear_sdl_renderer.h>
 
 #define TITLE "evolution-sim"
-#define VERSION "v0.1.0"
-#define RELEASE_DATE "01/17/2026"
+#define VERSION "v0.2.0 alpha 1 preview"
+#define RELEASE_DATE "01/20/2026"
 
 static uint32_t rng_state, rng_seed;
 
@@ -80,9 +80,10 @@ static inline void select_still_frame(
     srcrect->y = 0;
 }
 
-#define ANIMATION_CELL_DEATH    1
-#define ANIMATION_CELL_BIRTH    2
-#define ANIMATION_CELL_DIVISION 3
+#define ANIMATION_CELL_TWITCH   1
+#define ANIMATION_CELL_DEATH    2
+#define ANIMATION_CELL_BIRTH    3
+#define ANIMATION_CELL_DIVISION 4
 
 static inline void select_animation_frame(
     SDL_Rect *srcrect,
@@ -91,7 +92,7 @@ static inline void select_animation_frame(
     uint8_t speed,
     uint8_t rotation
 ) {
-    srcrect->x = (tick_diff / (1000 / (ANIMATION_FPS * speed)) + rotation * 4) * TILE_WIDTH;
+    srcrect->x = (tick_diff / (1000 / (ANIMATION_FPS * speed)) + rotation % 4 * 4) * TILE_WIDTH;
     srcrect->y = atlas_id * TILE_HEIGHT;
 }
 
@@ -1591,72 +1592,6 @@ static bool ux_sim(void) {
             (uint32_t)zoom
         );
     }
-    const int32_t
-        tile_w = TILE_WIDTH * zoom / 100,
-        tile_h = TILE_HEIGHT * zoom / 100;
-    if (
-        mouse_x >= 0 &&
-        mouse_y >= panel_controls_pos_rect.h &&
-        mouse_x < window_w &&
-        mouse_y < window_h
-    ) {
-        const int32_t
-            disp_x = mouse_x - cam_x,
-            disp_y = mouse_y - panel_controls_pos_rect.h - cam_y;
-        if (
-            disp_x >= 0 &&
-            disp_y >= 0 &&
-            disp_x < world.w * tile_w &&
-            disp_y < world.h * tile_h
-        ) {
-            pointer_x = disp_x / tile_w;
-            pointer_y = disp_y / tile_h;
-            is_pointing = true;
-            snprintf(
-                text_report_pointer_pos.buffer,
-                text_report_pointer_pos_max + 1,
-                "X: %u; Y: %u",
-                (uint32_t)pointer_x,
-                (uint32_t)pointer_y
-            );
-            struct Tile *tile = &tile_at(pointer_x, pointer_y);
-            snprintf(
-                text_report_curr_tile_energy.buffer,
-                text_report_curr_tile_energy_max + 1,
-                "Tile energy: %u",
-                (uint32_t)tile->energy
-            );
-            if (tile->cell.energy != 0) {
-                snprintf(
-                    text_report_curr_cell_age.buffer,
-                    text_report_curr_cell_age_max + 1,
-                    "Cell age: %u",
-                    (uint32_t)tile->cell.age
-                );
-                snprintf(
-                    text_report_curr_cell_energy.buffer,
-                    text_report_curr_cell_energy_max + 1,
-                    "Cell energy: %u",
-                    (uint32_t)tile->cell.energy
-                );
-            } else {
-                memset(
-                    text_report_curr_cell_age.buffer,
-                    '\0',
-                    text_report_curr_cell_age_max
-                );
-                memset(
-                    text_report_curr_cell_energy.buffer,
-                    '\0',
-                    text_report_curr_cell_energy_max
-                );
-            }
-        } else {
-            is_pointing = false;
-        }
-    } else {
-        is_pointing = false;
-    }
     const uint32_t curr_tick = SDL_GetTicks();
     if (icon_button_step.is_pressed) {
         if (!has_acted && animation_tick == 0) {
@@ -1724,6 +1659,72 @@ static bool ux_sim(void) {
         has_acted = true;
     } else {
         has_acted = false;
+    }
+    const int32_t
+        tile_w = TILE_WIDTH * zoom / 100,
+        tile_h = TILE_HEIGHT * zoom / 100;
+    if (
+        mouse_x >= 0 &&
+        mouse_y >= panel_controls_pos_rect.h &&
+        mouse_x < window_w &&
+        mouse_y < window_h
+    ) {
+        const int32_t
+            disp_x = mouse_x - cam_x,
+            disp_y = mouse_y - panel_controls_pos_rect.h - cam_y;
+        if (
+            disp_x >= 0 &&
+            disp_y >= 0 &&
+            disp_x < world.w * tile_w &&
+            disp_y < world.h * tile_h
+        ) {
+            pointer_x = disp_x / tile_w;
+            pointer_y = disp_y / tile_h;
+            is_pointing = true;
+            snprintf(
+                text_report_pointer_pos.buffer,
+                text_report_pointer_pos_max + 1,
+                "X: %u; Y: %u",
+                (uint32_t)pointer_x,
+                (uint32_t)pointer_y
+            );
+            struct Tile *tile = &tile_at(pointer_x, pointer_y);
+            snprintf(
+                text_report_curr_tile_energy.buffer,
+                text_report_curr_tile_energy_max + 1,
+                "Tile energy: %u",
+                (uint32_t)tile->energy
+            );
+            if (tile->cell.energy != 0) {
+                snprintf(
+                    text_report_curr_cell_age.buffer,
+                    text_report_curr_cell_age_max + 1,
+                    "Cell age: %u",
+                    (uint32_t)tile->cell.age
+                );
+                snprintf(
+                    text_report_curr_cell_energy.buffer,
+                    text_report_curr_cell_energy_max + 1,
+                    "Cell energy: %u",
+                    (uint32_t)tile->cell.energy
+                );
+            } else {
+                memset(
+                    text_report_curr_cell_age.buffer,
+                    '\0',
+                    text_report_curr_cell_age_max
+                );
+                memset(
+                    text_report_curr_cell_energy.buffer,
+                    '\0',
+                    text_report_curr_cell_energy_max
+                );
+            }
+        } else {
+            is_pointing = false;
+        }
+    } else {
+        is_pointing = false;
     }
     if (
         mouse_state & SDL_BUTTON(SDL_BUTTON_RIGHT) &&
@@ -1825,12 +1826,20 @@ static bool ux_sim(void) {
             if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
                 return false;
             }
-            if (tile->cell.energy != 0) {
-                select_still_frame(
-                    &srcrect,
-                    STILL_CELL
-                );
-                if (animation_tick != 0) {
+            select_still_frame(
+                &srcrect,
+                STILL_CELL
+            );
+            bool to_draw = tile->cell.energy != 0;
+            if (animation_tick != 0) {
+                if (tile->cell.energy != 0) {
+                    select_animation_frame(
+                        &srcrect,
+                        ANIMATION_CELL_TWITCH,
+                        curr_tick - animation_tick,
+                        speed,
+                        DIRECTION_NONE
+                    );
                     for (uint32_t i = 0; i < born_cell_count; ++i) {
                         if (cell_divisions[i].x == x && cell_divisions[i].y == y) {
                             select_animation_frame(
@@ -1890,26 +1899,24 @@ static bool ux_sim(void) {
                             }
                         }
                     }
-                }
-                if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
-                    return false;
-                }
-            } else if (animation_tick != 0) {
-                for (uint32_t i = 0; i < dying_cell_count; ++i) {
-                    if (cell_deaths[i].x == x && cell_deaths[i].y == y) {
-                        select_animation_frame(
-                            &srcrect,
-                            ANIMATION_CELL_DEATH,
-                            curr_tick - animation_tick,
-                            speed,
-                            0
-                        );
-                        if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
-                            return false;
+                } else {
+                    for (uint32_t i = 0; i < dying_cell_count; ++i) {
+                        if (cell_deaths[i].x == x && cell_deaths[i].y == y) {
+                            select_animation_frame(
+                                &srcrect,
+                                ANIMATION_CELL_DEATH,
+                                curr_tick - animation_tick,
+                                speed,
+                                DIRECTION_NONE
+                            );
+                            to_draw = true;
+                            break;
                         }
-                        break;
                     }
                 }
+            }
+            if (to_draw && SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
+                return false;
             }
         }
     }
