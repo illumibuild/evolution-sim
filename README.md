@@ -90,7 +90,7 @@ As already mentioned above, if the cell's energy reaches 0 after this, **it dies
 
 Every cell that has **at least 10 energy**, is **at least 10 generations old** and has **at least 1 free tile** out of its **4 adjacent tiles** has a **25% (1 in 4) chance** to divide itself into two cells, **splitting the mother cell's energy equally**, and **losing a unit of energy if the mother cell's energy is odd**.
 When a cell divides itself, one daughter cell **stays on the same tile** as the mother cell, while the other is born on **the most energy-rich free tile out of the 4 adjacent tiles** to the original mother cell.
-Both new cells start at **0 age**.
+The daughter cell that stays on the same tile **inherits the mother cell's age**, while the other one **starts at 0 age**.
 
 ## Current development state
 

@@ -1398,7 +1398,6 @@ static void advance(void) {
                     cell_divisions[born_cell_count - 1].x = x;
                     cell_divisions[born_cell_count - 1].y = y;
                     cell_divisions[born_cell_count - 1].direction = direction;
-                    tile->cell.age = 0;
                     selected_tile->cell.age = 0;
                     tile->cell.energy /= 2;
                     selected_tile->cell.energy = tile->cell.energy;
