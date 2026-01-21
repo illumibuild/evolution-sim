@@ -1344,6 +1344,7 @@ static void advance(void) {
             tile->energy -= actual_harvested_energy;
             tile->cell.energy += actual_harvested_energy;
             if (--tile->cell.energy == 0) {
+                tile->energy += tile->cell.age;
                 if (!cell_deaths || dying_cell_count == cell_deaths_cap) {
                     cell_deaths = (struct CellAction *)realloc(
                         cell_deaths,
