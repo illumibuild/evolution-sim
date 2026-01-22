@@ -1248,8 +1248,24 @@ struct cell {
     uint32_t age, energy;
 };
 
+enum ev_type {
+    EVENT_NONE,
+    EVENT_DEATH,
+    EVENT_BIRTH,
+    EVENT_DIVISION
+};
+
+enum ev_direction {
+    DIRECTION_UP,
+    DIRECTION_RIGHT,
+    DIRECTION_DOWN,
+    DIRECTION_LEFT,
+    DIRECTION_NONE
+};
+
 struct tile {
     uint32_t energy;
+    uint8_t ev;
     struct cell cell;
 };
 
@@ -1261,7 +1277,12 @@ struct world {
 
 static struct world world;
 
-#define tile_at(x, y) world.tilemap[(y) * (uint32_t)world.w + (x)]
+#define TILE_AT(x, y) world.tilemap[(y) * (uint32_t)world.w + (x)]
+
+#define FORM_EVENT(type, direction) (((type) & 15) << 4) | ((direction) & 15)
+
+#define SEP_EVENT_TYPE(ev) (((ev) >> 4) & 15)
+#define SEP_EVENT_DIRECTION(ev) ((ev) & 15)
 
 #define GENERATION_TILE_INIT_ENERGY_CAP 75
 #define GENERATION_TILE_INIT_ENERGY_SUM (77 * 76 / 2)
@@ -1276,7 +1297,7 @@ static bool generate(void) {
             if (++operations > MAX_GENERATION_OPS_PER_TICK) {
                 return false;
             }
-            struct tile *tile = &tile_at(x, y);
+            struct tile *tile = &TILE_AT(x, y);
             uint32_t base = rng_rand() % GENERATION_TILE_INIT_ENERGY_SUM;
             for (uint32_t i = 0; i <= GENERATION_TILE_INIT_ENERGY_CAP; ++i) {
                 if (base <= GENERATION_TILE_INIT_ENERGY_CAP - i) {
@@ -1296,41 +1317,21 @@ static bool generate(void) {
     return true;
 }
 
-enum direction {
-    DIRECTION_UP,
-    DIRECTION_RIGHT,
-    DIRECTION_DOWN,
-    DIRECTION_LEFT,
-    DIRECTION_NONE
-};
-
-struct cell_action {
-    uint16_t x, y;
-    enum direction direction;
-};
-
 uint32_t live_cell_count, dying_cell_count, born_cell_count;
-
-struct cell_action *cell_deaths = NULL, *cell_divisions = NULL;
-
-uint32_t cell_deaths_cap = 1, cell_divisions_cap = 1;
-
-bool alloc_error = false;
 
 static void advance(void) {
     ++world.gen;
-    free(cell_deaths);
-    free(cell_divisions);
     live_cell_count = 0;
     dying_cell_count = 0;
     born_cell_count = 0;
-    cell_deaths = NULL;
-    cell_divisions = NULL;
-    cell_deaths_cap = 1;
-    cell_divisions_cap = 1;
+    for (uint16_t x = 0; x < world.w; ++x) {
+        for (uint16_t y = 0; y < world.w; ++y) {
+            TILE_AT(x, y).ev = FORM_EVENT(EVENT_NONE, DIRECTION_NONE);
+        }
+    }
     for (uint16_t x = 0; x < world.w; ++x) {
         for (uint16_t y = 0; y < world.h; ++y) {
-            struct tile *const tile = &tile_at(x, y);
+            struct tile *tile = &TILE_AT(x, y);
             if (tile->cell.energy == 0) {
                 continue;
             }
@@ -1345,32 +1346,20 @@ static void advance(void) {
             tile->cell.energy += actual_harvested_energy;
             if (--tile->cell.energy == 0) {
                 tile->energy += tile->cell.age;
-                if (!cell_deaths || dying_cell_count == cell_deaths_cap) {
-                    cell_deaths = (struct cell_action *)realloc(
-                        cell_deaths,
-                        (cell_deaths_cap *= 2) * sizeof(struct cell_action)
-                    );
-                    if (!cell_deaths) {
-                        alloc_error = true;
-                        return;
-                    }
-                }
                 ++dying_cell_count;
-                cell_deaths[dying_cell_count - 1].x = x;
-                cell_deaths[dying_cell_count - 1].y = y;
-                cell_deaths[dying_cell_count - 1].direction = DIRECTION_NONE;
+                tile->ev = FORM_EVENT(EVENT_DEATH, DIRECTION_NONE);
             } else {
                 ++live_cell_count;
             }
             if (tile->cell.energy >= 10 && tile->cell.age >= 10) {
                 struct tile *selected_tile = NULL;
-                struct tile *const adjacent_tiles[4]= {
-                    y > 0 ? &tile_at(x, y - 1) : NULL,
-                    x < world.w - 1 ? &tile_at(x + 1, y) : NULL,
-                    y < world.h - 1 ? &tile_at(x, y + 1) : NULL,
-                    x > 0 ? &tile_at(x - 1, y) : NULL
+                struct tile *adjacent_tiles[4]= {
+                    y > 0 ? &TILE_AT(x, y - 1) : NULL,
+                    x < world.w - 1 ? &TILE_AT(x + 1, y) : NULL,
+                    y < world.h - 1 ? &TILE_AT(x, y + 1) : NULL,
+                    x > 0 ? &TILE_AT(x - 1, y) : NULL
                 };
-                enum direction direction = DIRECTION_NONE;
+                enum ev_direction ev_direction = DIRECTION_NONE;
                 for (uint8_t i = 0; i < 4; ++i) {
                     if (
                         adjacent_tiles[i] &&
@@ -1381,24 +1370,13 @@ static void advance(void) {
                         )
                     ) {
                         selected_tile = adjacent_tiles[i];
-                        direction = i;
+                        ev_direction = i;
                     }
                 }
                 if (selected_tile) {
-                    if (!cell_divisions || born_cell_count == cell_divisions_cap) {
-                        cell_divisions = (struct cell_action *)realloc(
-                            cell_divisions,
-                            (cell_divisions_cap *= 2) * sizeof(struct cell_action)
-                        );
-                        if (!cell_divisions) {
-                            alloc_error = true;
-                            return;
-                        }
-                    }
                     ++born_cell_count;
-                    cell_divisions[born_cell_count - 1].x = x;
-                    cell_divisions[born_cell_count - 1].y = y;
-                    cell_divisions[born_cell_count - 1].direction = direction;
+                    tile->ev = FORM_EVENT(EVENT_DIVISION, ev_direction);
+                    selected_tile->ev = FORM_EVENT(EVENT_BIRTH, ev_direction);
                     selected_tile->cell.age = 0;
                     tile->cell.energy /= 2;
                     selected_tile->cell.energy = tile->cell.energy;
@@ -1443,7 +1421,8 @@ static bool ux_creation(void) {
         }
         rng_srand(seed);
         world.tilemap = (struct tile *)calloc(
-            (uint32_t)potential_w * (uint32_t)potential_h, sizeof(struct tile)
+            (uint32_t)potential_w * (uint32_t)potential_h,
+            sizeof(struct tile)
         );
         if (!world.tilemap) {
             snprintf(
@@ -1466,7 +1445,7 @@ static bool ux_generation(void) {
         live_cell_count = 0;
         for (uint16_t x = 0; x < world.w; ++x) {
             for (uint16_t y = 0; y < world.h; ++y) {
-                if (tile_at(x, y).cell.energy != 0) {
+                if (TILE_AT(x, y).cell.energy != 0) {
                     ++live_cell_count;
                 }
             }
@@ -1688,7 +1667,7 @@ static bool ux_sim(void) {
                 (uint32_t)pointer_x,
                 (uint32_t)pointer_y
             );
-            struct tile *tile = &tile_at(pointer_x, pointer_y);
+            struct tile *tile = &TILE_AT(pointer_x, pointer_y);
             snprintf(
                 text_report_curr_tile_energy.buffer,
                 text_report_curr_tile_energy_max + 1,
@@ -1803,7 +1782,7 @@ static bool ux_sim(void) {
             ) {
                 continue;
             }
-            struct tile *tile = &tile_at(x, y);
+            struct tile *tile = &TILE_AT(x, y);
             if (
                 SDL_SetRenderDrawColor(
                     renderer,
@@ -1832,7 +1811,8 @@ static bool ux_sim(void) {
             );
             bool to_draw = tile->cell.energy != 0;
             if (animation_tick != 0) {
-                if (tile->cell.energy != 0) {
+                switch (SEP_EVENT_TYPE(tile->ev)) {
+                case EVENT_NONE:
                     select_animation_frame(
                         &srcrect,
                         ANIMATION_CELL_TWITCH,
@@ -1840,79 +1820,34 @@ static bool ux_sim(void) {
                         speed,
                         DIRECTION_NONE
                     );
-                    for (uint32_t i = 0; i < born_cell_count; ++i) {
-                        if (cell_divisions[i].x == x && cell_divisions[i].y == y) {
-                            select_animation_frame(
-                                &srcrect,
-                                ANIMATION_CELL_DIVISION,
-                                curr_tick - animation_tick,
-                                speed,
-                                cell_divisions[i].direction
-                            );
-                            break;
-                        } else {
-                            uint16_t
-                                look_x = cell_divisions[i].x,
-                                look_y = cell_divisions[i].y;
-                            bool is_overflowing = false;
-                            switch (cell_divisions[i].direction) {
-                            case DIRECTION_UP:
-                                if (look_y == 0) {
-                                    is_overflowing = true;
-                                } else {
-                                    --look_y;
-                                }
-                                break;
-                            case DIRECTION_RIGHT:
-                                if (look_x == world.w - 1) {
-                                    is_overflowing = true;
-                                } else {
-                                    ++look_x;
-                                }
-                                break;
-                            case DIRECTION_DOWN:
-                                if (look_y == world.h - 1) {
-                                    is_overflowing = true;
-                                } else {
-                                    ++look_y;
-                                }
-                                break;
-                            case DIRECTION_LEFT:
-                                if (look_x == 0) {
-                                    is_overflowing = true;
-                                } else {
-                                    --look_x;
-                                }
-                                break;
-                            case DIRECTION_NONE:
-                                is_overflowing = true;
-                            }
-                            if (!is_overflowing && x == look_x && y == look_y) {
-                                select_animation_frame(
-                                    &srcrect,
-                                    ANIMATION_CELL_BIRTH,
-                                    curr_tick - animation_tick,
-                                    speed,
-                                    cell_divisions[i].direction
-                                );
-                                break;
-                            }
-                        }
-                    }
-                } else {
-                    for (uint32_t i = 0; i < dying_cell_count; ++i) {
-                        if (cell_deaths[i].x == x && cell_deaths[i].y == y) {
-                            select_animation_frame(
-                                &srcrect,
-                                ANIMATION_CELL_DEATH,
-                                curr_tick - animation_tick,
-                                speed,
-                                DIRECTION_NONE
-                            );
-                            to_draw = true;
-                            break;
-                        }
-                    }
+                    break;
+                case EVENT_DEATH:
+                    select_animation_frame(
+                        &srcrect,
+                        ANIMATION_CELL_DEATH,
+                        curr_tick - animation_tick,
+                        speed,
+                        DIRECTION_NONE
+                    );
+                    to_draw = true;
+                    break;
+                case EVENT_BIRTH:
+                    select_animation_frame(
+                        &srcrect,
+                        ANIMATION_CELL_BIRTH,
+                        curr_tick - animation_tick,
+                        speed,
+                        SEP_EVENT_DIRECTION(tile->ev)
+                    );
+                    break;
+                case EVENT_DIVISION:
+                    select_animation_frame(
+                        &srcrect,
+                        ANIMATION_CELL_DIVISION,
+                        curr_tick - animation_tick,
+                        speed,
+                        SEP_EVENT_DIRECTION(tile->ev)
+                    );
                 }
             }
             if (to_draw && SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
@@ -2013,12 +1948,6 @@ int main() {
             end_gui();
             quit();
             return 1;
-        } else if (ux_state == UX_SIM) {
-            if (alloc_error) {
-                end_gui();
-                quit();
-                return 1;
-            }
         }
     }
     free(world.tilemap);
