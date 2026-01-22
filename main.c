@@ -22,7 +22,7 @@
 
 #define TITLE "evolution-sim"
 #define VERSION "v0.2.0 alpha 1 preview"
-#define RELEASE_DATE "01/21/2026"
+#define RELEASE_DATE "01/22/2026"
 
 static uint32_t rng_state, rng_seed;
 
@@ -225,16 +225,16 @@ static inline void quit(void) {
 
 int32_t window_w, window_h;
 
-enum UXState {
+enum ux_state {
     UX_ANY,
     UX_CREATION,
     UX_GENERATION,
     UX_SIM
 };
 
-static enum UXState ux_state = UX_CREATION;
+static enum ux_state ux_state = UX_CREATION;
 
-enum GUIElementType {
+enum gui_element_type {
     GUI_LABEL,
     GUI_TEXT,
     GUI_INPUT,
@@ -243,11 +243,11 @@ enum GUIElementType {
     GUI_PANEL
 };
 
-struct GUILabelElement {
-    const enum GUIElementType type;
+struct gui_label_element {
+    const enum gui_element_type type;
     const char *const text;
     const enum nk_text_align alignment;
-    const enum UXState active_ux_state;
+    const enum ux_state active_ux_state;
     struct nk_rect (*const pos)();
 };
 
@@ -329,13 +329,13 @@ struct nk_rect label_release_date_pos(void) {
     );
 }
 
-struct GUITextElement {
-    const enum GUIElementType type;
+struct gui_text_element {
+    const enum gui_element_type type;
     const uint32_t max;
     char *buffer;
     const enum nk_text_align alignment;
     struct nk_rect (*const pos)();
-    const enum UXState active_ux_state;
+    const enum ux_state active_ux_state;
 };
 
 #define text_error_max 42
@@ -481,12 +481,12 @@ struct nk_rect text_report_curr_cell_energy_pos(void) {
     );
 }
 
-struct GUIInputElement {
-    const enum GUIElementType type;
+struct gui_input_element {
+    const enum gui_element_type type;
     const uint32_t max;
     char *buffer;
     nk_bool (*filter)(const struct nk_text_edit *, nk_rune);
-    const enum UXState active_ux_state;
+    const enum ux_state active_ux_state;
     struct nk_rect (*const pos)();
 };
 
@@ -529,11 +529,11 @@ struct nk_rect input_seed_pos(void) {
     );
 }
 
-struct GUIButtonElement {
-    const enum GUIElementType type;
+struct gui_button_element {
+    const enum gui_element_type type;
     const char *const text;
     bool is_enabled, is_pressed;
-    const enum UXState active_ux_state;
+    const enum ux_state active_ux_state;
     struct nk_rect (*const pos)();
 };
 
@@ -549,11 +549,11 @@ struct nk_rect button_generate_pos(void) {
     );
 }
 
-struct GUIIconButtonElement {
-    const enum GUIElementType type;
+struct gui_icon_button_element {
+    const enum gui_element_type type;
     const struct nk_image *const icon;
     bool is_enabled, is_pressed;
-    const enum UXState active_ux_state;
+    const enum ux_state active_ux_state;
     struct nk_rect (*const pos)();
 };
 
@@ -653,11 +653,11 @@ struct nk_rect icon_button_quit_pos(void) {
     );
 }
 
-struct GUIPanelElement {
-    const enum GUIElementType type;
+struct gui_panel_element {
+    const enum gui_element_type type;
     const char *const id;
     struct nk_rect (*const pos)();
-    const enum UXState active_ux_state;
+    const enum ux_state active_ux_state;
 };
 
 #define panel_controls_id "controls"
@@ -672,17 +672,17 @@ struct nk_rect panel_controls_pos(void) {
     );
 }
 
-union GUIElement {
-    const enum GUIElementType type;
-    struct GUILabelElement label_element;
-    struct GUITextElement text_element;
-    struct GUIInputElement input_element;
-    struct GUIButtonElement button_element;
-    struct GUIIconButtonElement icon_button_element;
-    struct GUIPanelElement panel_element;
+union gui_element {
+    const enum gui_element_type type;
+    struct gui_label_element label_element;
+    struct gui_text_element text_element;
+    struct gui_input_element input_element;
+    struct gui_button_element button_element;
+    struct gui_icon_button_element icon_button_element;
+    struct gui_panel_element panel_element;
 };
 
-static union GUIElement gui_elements[] = {
+static union gui_element gui_elements[] = {
     {
         .label_element = {
             .type = GUI_LABEL,
@@ -977,7 +977,7 @@ static union GUIElement gui_elements[] = {
     }
 };
 
-#define GUI_ELEMENT_COUNT sizeof(gui_elements) / sizeof(union GUIElement)
+#define GUI_ELEMENT_COUNT sizeof(gui_elements) / sizeof(union gui_element)
 
 #define label_world_size             gui_elements[ 0].label_element
 #define label_seed                   gui_elements[ 1].label_element
@@ -1015,7 +1015,7 @@ static inline bool start_gui(void) {
         switch (gui_elements[i].type) {
         case GUI_TEXT:
             {
-                struct GUITextElement *gui_text_element =
+                struct gui_text_element *gui_text_element =
                     &gui_elements[i].text_element;
                 gui_text_element->buffer = (char *)calloc(gui_text_element->max + 1, 1);
                 if (!gui_text_element->buffer) {
@@ -1025,7 +1025,7 @@ static inline bool start_gui(void) {
             break;
         case GUI_INPUT:
             {
-                struct GUIInputElement *gui_input_element =
+                struct gui_input_element *gui_input_element =
                     &gui_elements[i].input_element;
                 gui_input_element->buffer = (char *)calloc(gui_input_element->max + 1, 1);
                 if (!gui_input_element->buffer) {
@@ -1058,7 +1058,7 @@ static inline void do_gui(void) {
             switch (gui_elements[i].type) {
             case GUI_LABEL:
                 {
-                    struct GUILabelElement *gui_label_element =
+                    struct gui_label_element *gui_label_element =
                         &gui_elements[i].label_element;
                     if (
                         ux_state != gui_label_element->active_ux_state &&
@@ -1080,7 +1080,7 @@ static inline void do_gui(void) {
                 break;
             case GUI_TEXT:
                 {
-                    struct GUITextElement *gui_text_element =
+                    struct gui_text_element *gui_text_element =
                         &gui_elements[i].text_element;
                     if (
                         ux_state != gui_text_element->active_ux_state &&
@@ -1105,7 +1105,7 @@ static inline void do_gui(void) {
                 break;
             case GUI_INPUT:
                 {
-                    struct GUIInputElement *gui_input_element =
+                    struct gui_input_element *gui_input_element =
                         &gui_elements[i].input_element;
                     if (
                         ux_state != gui_input_element->active_ux_state &&
@@ -1131,7 +1131,7 @@ static inline void do_gui(void) {
                 break;
             case GUI_BUTTON:
                 {
-                    struct GUIButtonElement *gui_button_element =
+                    struct gui_button_element *gui_button_element =
                         &gui_elements[i].button_element;
                     if (
                         ux_state != gui_button_element->active_ux_state &&
@@ -1162,7 +1162,7 @@ static inline void do_gui(void) {
                 break;
             case GUI_ICON_BUTTON:
                 {
-                    struct GUIIconButtonElement *gui_icon_button_element =
+                    struct gui_icon_button_element *gui_icon_button_element =
                         &gui_elements[i].icon_button_element;
                     if (
                         ux_state != gui_icon_button_element->active_ux_state &&
@@ -1193,7 +1193,7 @@ static inline void do_gui(void) {
                 break;
             case GUI_PANEL:
                 {
-                    struct GUIPanelElement *gui_panel_element =
+                    struct gui_panel_element *gui_panel_element =
                         &gui_elements[i].panel_element;
                     if (
                         ux_state != gui_panel_element->active_ux_state &&
@@ -1227,14 +1227,14 @@ static inline void end_gui(void) {
         switch (gui_elements[i].type) {
         case GUI_TEXT:
             {
-                struct GUITextElement *gui_text_element =
+                struct gui_text_element *gui_text_element =
                     &gui_elements[i].text_element;
                 free(gui_text_element->buffer);
             }
             break;
         case GUI_INPUT:
             {
-                struct GUIInputElement *gui_input_element =
+                struct gui_input_element *gui_input_element =
                     &gui_elements[i].input_element;
                 free(gui_input_element->buffer);
             }
@@ -1244,22 +1244,22 @@ static inline void end_gui(void) {
     }
 }
 
-struct Cell {
+struct cell {
     uint32_t age, energy;
 };
 
-struct Tile {
+struct tile {
     uint32_t energy;
-    struct Cell cell;
+    struct cell cell;
 };
 
-struct World {
+struct world {
     uint32_t gen;
     uint16_t w, h;
-    struct Tile *tilemap;
+    struct tile *tilemap;
 };
 
-static struct World world;
+static struct world world;
 
 #define tile_at(x, y) world.tilemap[(y) * (uint32_t)world.w + (x)]
 
@@ -1276,7 +1276,7 @@ static bool generate(void) {
             if (++operations > MAX_GENERATION_OPS_PER_TICK) {
                 return false;
             }
-            struct Tile *tile = &tile_at(x, y);
+            struct tile *tile = &tile_at(x, y);
             uint32_t base = rng_rand() % GENERATION_TILE_INIT_ENERGY_SUM;
             for (uint32_t i = 0; i <= GENERATION_TILE_INIT_ENERGY_CAP; ++i) {
                 if (base <= GENERATION_TILE_INIT_ENERGY_CAP - i) {
@@ -1296,7 +1296,7 @@ static bool generate(void) {
     return true;
 }
 
-enum Direction {
+enum direction {
     DIRECTION_UP,
     DIRECTION_RIGHT,
     DIRECTION_DOWN,
@@ -1304,14 +1304,14 @@ enum Direction {
     DIRECTION_NONE
 };
 
-struct CellAction {
+struct cell_action {
     uint16_t x, y;
-    enum Direction direction;
+    enum direction direction;
 };
 
 uint32_t live_cell_count, dying_cell_count, born_cell_count;
 
-struct CellAction *cell_deaths = NULL, *cell_divisions = NULL;
+struct cell_action *cell_deaths = NULL, *cell_divisions = NULL;
 
 uint32_t cell_deaths_cap = 1, cell_divisions_cap = 1;
 
@@ -1330,7 +1330,7 @@ static void advance(void) {
     cell_divisions_cap = 1;
     for (uint16_t x = 0; x < world.w; ++x) {
         for (uint16_t y = 0; y < world.h; ++y) {
-            struct Tile *const tile = &tile_at(x, y);
+            struct tile *const tile = &tile_at(x, y);
             if (tile->cell.energy == 0) {
                 continue;
             }
@@ -1346,9 +1346,9 @@ static void advance(void) {
             if (--tile->cell.energy == 0) {
                 tile->energy += tile->cell.age;
                 if (!cell_deaths || dying_cell_count == cell_deaths_cap) {
-                    cell_deaths = (struct CellAction *)realloc(
+                    cell_deaths = (struct cell_action *)realloc(
                         cell_deaths,
-                        (cell_deaths_cap *= 2) * sizeof(struct CellAction)
+                        (cell_deaths_cap *= 2) * sizeof(struct cell_action)
                     );
                     if (!cell_deaths) {
                         alloc_error = true;
@@ -1363,14 +1363,14 @@ static void advance(void) {
                 ++live_cell_count;
             }
             if (tile->cell.energy >= 10 && tile->cell.age >= 10) {
-                struct Tile *selected_tile = NULL;
-                struct Tile *const adjacent_tiles[4]= {
+                struct tile *selected_tile = NULL;
+                struct tile *const adjacent_tiles[4]= {
                     y > 0 ? &tile_at(x, y - 1) : NULL,
                     x < world.w - 1 ? &tile_at(x + 1, y) : NULL,
                     y < world.h - 1 ? &tile_at(x, y + 1) : NULL,
                     x > 0 ? &tile_at(x - 1, y) : NULL
                 };
-                enum Direction direction = DIRECTION_NONE;
+                enum direction direction = DIRECTION_NONE;
                 for (uint8_t i = 0; i < 4; ++i) {
                     if (
                         adjacent_tiles[i] &&
@@ -1386,9 +1386,9 @@ static void advance(void) {
                 }
                 if (selected_tile) {
                     if (!cell_divisions || born_cell_count == cell_divisions_cap) {
-                        cell_divisions = (struct CellAction *)realloc(
+                        cell_divisions = (struct cell_action *)realloc(
                             cell_divisions,
-                            (cell_divisions_cap *= 2) * sizeof(struct CellAction)
+                            (cell_divisions_cap *= 2) * sizeof(struct cell_action)
                         );
                         if (!cell_divisions) {
                             alloc_error = true;
@@ -1442,8 +1442,8 @@ static bool ux_creation(void) {
             return false;
         }
         rng_srand(seed);
-        world.tilemap = (struct Tile *)calloc(
-            (uint32_t)potential_w * (uint32_t)potential_h, sizeof(struct Tile)
+        world.tilemap = (struct tile *)calloc(
+            (uint32_t)potential_w * (uint32_t)potential_h, sizeof(struct tile)
         );
         if (!world.tilemap) {
             snprintf(
@@ -1688,7 +1688,7 @@ static bool ux_sim(void) {
                 (uint32_t)pointer_x,
                 (uint32_t)pointer_y
             );
-            struct Tile *tile = &tile_at(pointer_x, pointer_y);
+            struct tile *tile = &tile_at(pointer_x, pointer_y);
             snprintf(
                 text_report_curr_tile_energy.buffer,
                 text_report_curr_tile_energy_max + 1,
@@ -1803,7 +1803,7 @@ static bool ux_sim(void) {
             ) {
                 continue;
             }
-            struct Tile *tile = &tile_at(x, y);
+            struct tile *tile = &tile_at(x, y);
             if (
                 SDL_SetRenderDrawColor(
                     renderer,
