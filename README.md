@@ -27,14 +27,14 @@ A simple simulation using a cellular automata system designed to explore evoluti
 Linux (GCC):
 
 ```
-gcc -std=c23 -Wall -O2 main.c -o evolution-sim -I<SDL2 include path> -I<Nuklear include path> \
+gcc -std=c17 -Wall -O2 main.c -o evolution-sim -I<SDL2 include path> -I<Nuklear include path> \
 -L<lib path> -lSDL2 -lSDL2_image -lm
 ```
 
 Windows (MSVC):
 
 ```
-cl /std:c23 /W4 /O2 main.c /Fe:evolution-sim.exe /I"<SDL2 include path>" ^
+cl /std:c17 /W4 /O2 main.c /Fe:evolution-sim.exe /I"<SDL2 include path>" ^
 /I"<SDL2_image include path>" /I"<Nuklear include path>" /link Shell32.lib ^
 /LIBPATH:"<SDL2 lib path>" SDL2main.lib SDL2.lib /LIBPATH:"<SDL2_image lib path>" ^
 SDL2_image.lib /SUBSYSTEM:WINDOWS
