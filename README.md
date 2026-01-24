@@ -91,6 +91,23 @@ Every cell that has **at least 10 energy**, is **at least 10 generations old** a
 When a cell divides itself, one daughter cell **stays on the same tile** as the mother cell, while the other is born on **the most energy-rich free tile out of the 4 adjacent tiles** to the original mother cell.
 The daughter cell that stays on the same tile **inherits the mother cell's age**, while the other one **starts at 0 age**.
 
+#### Evolution
+
+If certain conditions are met, a cell has a chance to **evolve to unlock a new ability/trait**.
+Every evolution has to be **a certain minimum age or above**, requires **a certain amount of energy** and also takes **a certain number of generations** to complete, during which the cell **cannot act** - it cannot harvest more energy and cannot divide.
+Once a cell enters evolution, **every generation** of the evolution, **a percentage** of the **total energy required for the evolution** is **subtracted** from the cell's available energy.
+If the living cost causes the cell to run out of energy, **it dies** as usual, so **every evolution is also a risk**.
+Currently, the only evolution is **motility** - the ability to move.
+
+*Motility*
+
+When a cell has this evolution, if it has **at least** 5 energy **after** the living cost is applied, it has a **20% (1 in 5) chance** to move to a **random free adjacent tile**, spending **1 energy** in the process.
+
+- eligibility: 20 age
+- cost: 20 energy
+- timescale: 5 generations
+- probability: 20% (1 in 5)
+
 #### Death
 
 A cell **dies** when **its energy reaches 0** after the living cost is applied.

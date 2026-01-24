@@ -22,7 +22,7 @@
 
 #define TITLE "evolution-sim"
 #define VERSION "v0.2.0 alpha 1 preview"
-#define RELEASE_DATE "01/23/2026"
+#define RELEASE_DATE "01/24/2026"
 
 static uint32_t rng_state, rng_seed;
 
@@ -80,10 +80,13 @@ static inline void select_still_frame(
     srcrect->y = 0;
 }
 
-#define ANIMATION_CELL_TWITCH   1
-#define ANIMATION_CELL_DEATH    2
-#define ANIMATION_CELL_BIRTH    3
-#define ANIMATION_CELL_DIVISION 4
+#define ANIMATION_CELL_TWITCH    1
+#define ANIMATION_CELL_DEATH     2
+#define ANIMATION_CELL_BIRTH     3
+#define ANIMATION_CELL_DIVISION  4
+#define ANIMATION_CELL_PULSE     5
+#define ANIMATION_CELL_MOVE_TO   6
+#define ANIMATION_CELL_MOVE_FROM 7
 
 static inline void select_animation_frame(
     SDL_Rect *srcrect,
@@ -1138,15 +1141,43 @@ static inline void end_gui(void) {
     }
 }
 
+struct evolution {
+    const char *name;
+    uint32_t eligibility, cost, timescale;
+    uint8_t prob;
+};
+
+static const struct evolution evolutions[] = {
+    {
+        .name = "Motility",
+        .eligibility = 20,
+        .cost = 20,
+        .timescale = 5,
+        .prob = 5
+    }
+};
+
+#define EVOLUTION_COUNT sizeof(evolutions) / sizeof(struct evolution)
+
+#define EVOLUTION_MOTILITY evolutions[0]
+
+typedef uint16_t evolution_info_t;
+
 struct cell {
     uint32_t age, energy;
+    const struct evolution *ongoing_evolution;
+    uint32_t ongoing_evolution_timescale_progress;
+    evolution_info_t evolution_info;
 };
 
 enum ev_type {
     EVENT_NONE,
     EVENT_DEATH,
     EVENT_BIRTH,
-    EVENT_DIVISION
+    EVENT_DIVISION,
+    EVENT_PULSE,
+    EVENT_MOVE_TO,
+    EVENT_MOVE_FROM
 };
 
 typedef uint8_t ev_type_t;
@@ -1236,6 +1267,28 @@ static void advance(void) {
                 continue;
             }
             ++tile->cell.age;
+            if (tile->cell.ongoing_evolution) {
+                if (--tile->cell.energy == 0) {
+                    tile->energy += tile->cell.age;
+                    ++dying_cell_count;
+                    tile->ev.type = EVENT_DEATH;
+                    tile->ev.direction = DIRECTION_NONE;
+                } else {
+                    ++live_cell_count;
+                    if (
+                        ++tile->cell.ongoing_evolution_timescale_progress ==
+                        tile->cell.ongoing_evolution->timescale
+                    ) {
+                        tile->cell.evolution_info |=
+                            (1 << (tile->cell.ongoing_evolution - evolutions));
+                        tile->cell.ongoing_evolution = NULL;
+                        tile->cell.ongoing_evolution_timescale_progress = 0;
+                    }
+                    tile->ev.type = EVENT_PULSE;
+                    tile->ev.direction = DIRECTION_NONE;
+                }
+                continue;
+            }
             const uint8_t
                 harvested_energy =
                     (tile->energy >= 100 ? 3 : tile->energy >= 50 ? 2 : 1) +
@@ -1252,7 +1305,7 @@ static void advance(void) {
             } else {
                 ++live_cell_count;
             }
-            if (tile->cell.energy >= 10 && tile->cell.age >= 10) {
+            if (tile->cell.energy >= 10 && tile->cell.age >= 10 && rng_rand() % 4 == 0) {
                 struct tile *selected_tile = NULL;
                 struct tile *adjacent_tiles[4]= {
                     y > 0 ? &TILE_AT(x, y - 1) : NULL,
@@ -1283,6 +1336,27 @@ static void advance(void) {
                     selected_tile->cell.age = 0;
                     tile->cell.energy /= 2;
                     selected_tile->cell.energy = tile->cell.energy;
+                }
+            } else if (
+                (
+                    tile->cell.evolution_info &
+                    (1 << (&EVOLUTION_MOTILITY - evolutions))
+                ) != 0 &&
+                tile->cell.energy > 5 &&
+                rand() % 5
+            ) {
+                printf("OMG! A CELL MOVED!\n");
+            } else {
+                for (evolution_info_t i = 0; i < EVOLUTION_COUNT; ++i) {
+                    if (
+                        (tile->cell.evolution_info & (1 << i)) == 0 &&
+                        tile->cell.age >= evolutions[i].eligibility &&
+                        tile->cell.energy >= evolutions[i].cost &&
+                        rng_rand() % evolutions[i].prob
+                    ) {
+                        tile->cell.ongoing_evolution = &evolutions[i];
+                        break;
+                    }
                 }
             }
         }
@@ -1747,6 +1821,33 @@ static bool ux_sim(void) {
                     select_animation_frame(
                         &srcrect,
                         ANIMATION_CELL_DIVISION,
+                        curr_tick - animation_tick,
+                        speed,
+                        tile->ev.direction
+                    );
+                    break;
+                case EVENT_PULSE:
+                    select_animation_frame(
+                        &srcrect,
+                        ANIMATION_CELL_PULSE,
+                        curr_tick - animation_tick,
+                        speed,
+                        DIRECTION_NONE
+                    );
+                    break;
+                case EVENT_MOVE_TO:
+                    select_animation_frame(
+                        &srcrect,
+                        ANIMATION_CELL_MOVE_TO,
+                        curr_tick - animation_tick,
+                        speed,
+                        tile->ev.direction
+                    );
+                    break;
+                case EVENT_MOVE_FROM:
+                    select_animation_frame(
+                        &srcrect,
+                        ANIMATION_CELL_MOVE_FROM,
                         curr_tick - animation_tick,
                         speed,
                         tile->ev.direction
