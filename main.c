@@ -1540,7 +1540,7 @@ static bool ux_generation(void) {
 #define MAX_ZOOM 100
 
 #define MIN_SPEED 1
-#define DEFAULT_SPEED 1
+#define DEFAULT_SPEED 2
 #define MAX_SPEED 4
 
 static bool ux_sim(void) {
