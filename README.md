@@ -90,6 +90,7 @@ Every live cell's energy **decreases** by 1.
 Every cell that has **at least 10 energy**, is **at least 10 generations old** and has **at least 1 free tile** out of its **4 adjacent tiles** has a **25% (1 in 4) chance** to divide itself into two cells, **splitting the mother cell's energy equally**, and **losing a unit of energy if the mother cell's energy is odd**.
 When a cell divides itself, one daughter cell **stays on the same tile** as the mother cell, while the other is born on **the most energy-rich free tile out of the 4 adjacent tiles** to the original mother cell.
 The daughter cell that stays on the same tile **inherits the mother cell's age**, while the other one **starts at 0 age**.
+Both daughter cells also **inherit** the mother cell's **evolutions**.
 
 #### Evolution
 
@@ -101,12 +102,21 @@ Currently, the only evolution is **motility** - the ability to move.
 
 *Motility*
 
-When a cell has this evolution, if it has **at least** 5 energy **after** the living cost is applied, it has a **20% (1 in 5) chance** to move to a **random free adjacent tile**, spending **1 energy** in the process.
+When a cell has this evolution, if it has **at least** 3 energy **after** the living cost is applied, and **there's a tile** out of its **4 adjacent tiles** that has **more energy** than its current tile, it will move to that tile, spending **1 energy** in the process.
+If there are **multiple** adjacent tiles with more energy, it moves to **the most energy-rich** one.
 
 - eligibility: 20 age
 - cost: 20 energy
 - timescale: 5 generations
-- probability: 20% (1 in 5)
+- probability: 50% (1 in 2)
+
+#### Limits
+
+A cell can only do one of the following during a single generation, and the priority is as listed:
+
+1. act "instinctively" - i.e. use an ability acquired through evolution
+2. divide itself
+3. initiate an evolution process
 
 #### Death
 

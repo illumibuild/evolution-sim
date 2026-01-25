@@ -22,7 +22,7 @@
 
 #define TITLE "evolution-sim"
 #define VERSION "v0.2.0 alpha 1 preview"
-#define RELEASE_DATE "01/24/2026"
+#define RELEASE_DATE "01/25/2026"
 
 static uint32_t rng_state, rng_seed;
 
@@ -1153,13 +1153,15 @@ static const struct evolution evolutions[] = {
         .eligibility = 20,
         .cost = 20,
         .timescale = 5,
-        .prob = 5
+        .prob = 2
     }
 };
 
 #define EVOLUTION_COUNT sizeof(evolutions) / sizeof(struct evolution)
 
 #define EVOLUTION_MOTILITY evolutions[0]
+
+#define EVOLUTION(evolution) (tile->cell.evolution_info & (1 << (&(evolution) - evolutions)))
 
 typedef uint16_t evolution_info_t;
 
@@ -1170,19 +1172,7 @@ struct cell {
     evolution_info_t evolution_info;
 };
 
-enum ev_type {
-    EVENT_NONE,
-    EVENT_DEATH,
-    EVENT_BIRTH,
-    EVENT_DIVISION,
-    EVENT_PULSE,
-    EVENT_MOVE_TO,
-    EVENT_MOVE_FROM
-};
-
-typedef uint8_t ev_type_t;
-
-enum ev_direction {
+enum direction {
     DIRECTION_UP,
     DIRECTION_RIGHT,
     DIRECTION_DOWN,
@@ -1190,16 +1180,37 @@ enum ev_direction {
     DIRECTION_NONE
 };
 
-typedef uint8_t ev_direction_t;
-
-struct ev {
-    ev_type_t type;
-    ev_direction_t direction;
+enum ev {
+    EVENT_DEATH,
+    EVENT_PULSE,
+    EVENT_MOVE_FROM_UP,
+    EVENT_MOVE_FROM_DOWN,
+    EVENT_MOVE_FROM_LEFT,
+    EVENT_MOVE_FROM_RIGHT,
+    EVENT_MOVE_TO_UP,
+    EVENT_MOVE_TO_DOWN,
+    EVENT_MOVE_TO_LEFT,
+    EVENT_MOVE_TO_RIGHT,
+    EVENT_DIVISION_UP,
+    EVENT_DIVISION_DOWN,
+    EVENT_DIVISION_LEFT,
+    EVENT_DIVISION_RIGHT,
+    EVENT_BIRTH_UP,
+    EVENT_BIRTH_DOWN,
+    EVENT_BIRTH_LEFT,
+    EVENT_BIRTH_RIGHT
 };
+
+typedef uint32_t ev_info_t;
+
+#define DOC_EVENT(ev) (tile->ev_info |= (1 << (ev)))
+#define EVENT(ev) (tile->ev_info & (1 << (ev)))
+#define ANY_EVENT() (tile->ev_info != 0)
+#define NO_EVENT() (tile->ev_info == 0)
 
 struct tile {
     uint32_t energy;
-    struct ev ev;
+    ev_info_t ev_info;
     struct cell cell;
 };
 
@@ -1246,47 +1257,25 @@ static bool generate(void) {
     return true;
 }
 
-uint32_t live_cell_count, dying_cell_count, born_cell_count;
+uint32_t live_cell_count;
 
-static void advance(void) {
-    ++world.gen;
-    live_cell_count = 0;
-    dying_cell_count = 0;
-    born_cell_count = 0;
+static inline void advance_age(void) {
     for (uint16_t x = 0; x < world.w; ++x) {
         for (uint16_t y = 0; y < world.h; ++y) {
             struct tile *tile = &TILE_AT(x, y);
-            tile->ev.type = EVENT_NONE;
-            tile->ev.direction = DIRECTION_NONE;
+            tile->ev_info = 0;
+            if (tile->cell.energy != 0) {
+                ++tile->cell.age;
+            }
         }
     }
+}
+
+static inline void advance_harvesting(void) {
     for (uint16_t x = 0; x < world.w; ++x) {
         for (uint16_t y = 0; y < world.h; ++y) {
             struct tile *tile = &TILE_AT(x, y);
-            if (tile->cell.energy == 0) {
-                continue;
-            }
-            ++tile->cell.age;
-            if (tile->cell.ongoing_evolution) {
-                if (--tile->cell.energy == 0) {
-                    tile->energy += tile->cell.age;
-                    ++dying_cell_count;
-                    tile->ev.type = EVENT_DEATH;
-                    tile->ev.direction = DIRECTION_NONE;
-                } else {
-                    ++live_cell_count;
-                    if (
-                        ++tile->cell.ongoing_evolution_timescale_progress ==
-                        tile->cell.ongoing_evolution->timescale
-                    ) {
-                        tile->cell.evolution_info |=
-                            (1 << (tile->cell.ongoing_evolution - evolutions));
-                        tile->cell.ongoing_evolution = NULL;
-                        tile->cell.ongoing_evolution_timescale_progress = 0;
-                    }
-                    tile->ev.type = EVENT_PULSE;
-                    tile->ev.direction = DIRECTION_NONE;
-                }
+            if (tile->cell.energy == 0 || tile->cell.ongoing_evolution) {
                 continue;
             }
             const uint8_t
@@ -1297,23 +1286,71 @@ static void advance(void) {
                     tile->energy : harvested_energy;
             tile->energy -= actual_harvested_energy;
             tile->cell.energy += actual_harvested_energy;
-            if (--tile->cell.energy == 0) {
-                tile->energy += tile->cell.age;
-                ++dying_cell_count;
-                tile->ev.type = EVENT_DEATH;
-                tile->ev.direction = DIRECTION_NONE;
-            } else {
-                ++live_cell_count;
+        }
+    }
+}
+
+static inline void advance_living(void) {
+    for (uint16_t x = 0; x < world.w; ++x) {
+        for (uint16_t y = 0; y < world.h; ++y) {
+            struct tile *tile = &TILE_AT(x, y);
+            if (tile->cell.energy == 0) {
+                continue;
             }
-            if (tile->cell.energy >= 10 && tile->cell.age >= 10 && rng_rand() % 4 == 0) {
-                struct tile *selected_tile = NULL;
+            if (--tile->cell.energy != 0) {
+                ++live_cell_count;
+                continue;
+            }
+            tile->energy += tile->cell.age;
+            tile->cell.age = 0;
+            tile->cell.ongoing_evolution = NULL;
+            tile->cell.ongoing_evolution_timescale_progress = 0;
+            tile->cell.evolution_info = 0;
+            DOC_EVENT(EVENT_DEATH);
+        }
+    }
+}
+
+static inline void advance_pulsing(void) {
+    for (uint16_t x = 0; x < world.w; ++x) {
+        for (uint16_t y = 0; y < world.h; ++y) {
+            struct tile *tile = &TILE_AT(x, y);
+            if (!tile->cell.ongoing_evolution) {
+                continue;
+            }
+            if (
+                ++tile->cell.ongoing_evolution_timescale_progress ==
+                tile->cell.ongoing_evolution->timescale
+            ) {
+                tile->cell.evolution_info |=
+                    (1 << (tile->cell.ongoing_evolution - evolutions));
+                tile->cell.ongoing_evolution = NULL;
+                tile->cell.ongoing_evolution_timescale_progress = 0;
+            }
+            DOC_EVENT(EVENT_PULSE);
+        }
+    }
+}
+
+static inline void advance_instinct(void) {
+    for (uint16_t x = 0; x < world.w; ++x) {
+        for (uint16_t y = 0; y < world.h; ++y) {
+            struct tile *tile = &TILE_AT(x, y);
+            if (ANY_EVENT()) {
+                continue;
+            }
+            if (
+                EVOLUTION(EVOLUTION_MOTILITY) &&
+                tile->cell.energy >= 3
+            ) {
+                struct tile *selected_tile = tile;
                 struct tile *adjacent_tiles[4]= {
                     y > 0 ? &TILE_AT(x, y - 1) : NULL,
-                    x < world.w - 1 ? &TILE_AT(x + 1, y) : NULL,
                     y < world.h - 1 ? &TILE_AT(x, y + 1) : NULL,
-                    x > 0 ? &TILE_AT(x - 1, y) : NULL
+                    x > 0 ? &TILE_AT(x - 1, y) : NULL,
+                    x < world.w - 1 ? &TILE_AT(x + 1, y) : NULL
                 };
-                enum ev_direction ev_direction = DIRECTION_NONE;
+                uint8_t direction = 0;
                 for (uint8_t i = 0; i < 4; ++i) {
                     if (
                         adjacent_tiles[i] &&
@@ -1324,43 +1361,104 @@ static void advance(void) {
                         )
                     ) {
                         selected_tile = adjacent_tiles[i];
-                        ev_direction = i;
+                        direction = i;
                     }
                 }
-                if (selected_tile) {
-                    ++born_cell_count;
-                    tile->ev.type = EVENT_DIVISION;
-                    tile->ev.direction = ev_direction;
-                    selected_tile->ev.type = EVENT_BIRTH;
-                    selected_tile->ev.direction = ev_direction;
-                    selected_tile->cell.age = 0;
-                    tile->cell.energy /= 2;
-                    selected_tile->cell.energy = tile->cell.energy;
-                }
-            } else if (
-                (
-                    tile->cell.evolution_info &
-                    (1 << (&EVOLUTION_MOTILITY - evolutions))
-                ) != 0 &&
-                tile->cell.energy > 5 &&
-                rand() % 5
-            ) {
-                printf("OMG! A CELL MOVED!\n");
-            } else {
-                for (evolution_info_t i = 0; i < EVOLUTION_COUNT; ++i) {
-                    if (
-                        (tile->cell.evolution_info & (1 << i)) == 0 &&
-                        tile->cell.age >= evolutions[i].eligibility &&
-                        tile->cell.energy >= evolutions[i].cost &&
-                        rng_rand() % evolutions[i].prob
-                    ) {
-                        tile->cell.ongoing_evolution = &evolutions[i];
-                        break;
-                    }
+                if (selected_tile != tile) {
+                    DOC_EVENT(EVENT_MOVE_FROM_UP + direction);
+                    selected_tile->cell.energy = --tile->cell.energy;
+                    selected_tile->cell.age = tile->cell.age;
+                    selected_tile->cell.evolution_info = tile->cell.evolution_info;
+                    tile->cell.energy = 0;
+                    tile->cell.age = 0;
+                    tile->cell.evolution_info = 0;
+                    tile = selected_tile;
+                    DOC_EVENT(EVENT_MOVE_TO_UP + direction);
+                    continue;
                 }
             }
         }
     }
+}
+
+static inline void advance_reproduction(void) {
+    for (uint16_t x = 0; x < world.w; ++x) {
+        for (uint16_t y = 0; y < world.h; ++y) {
+            struct tile *tile = &TILE_AT(x, y);
+            if (
+                ANY_EVENT() ||
+                tile->cell.age < 10 ||
+                tile->cell.energy < 10 ||
+                rng_rand() % 4 != 0
+            ) {
+                continue;
+            }
+            struct tile *selected_tile = NULL;
+            struct tile *adjacent_tiles[4]= {
+                y > 0 ? &TILE_AT(x, y - 1) : NULL,
+                y < world.h - 1 ? &TILE_AT(x, y + 1) : NULL,
+                x > 0 ? &TILE_AT(x - 1, y) : NULL,
+                x < world.w - 1 ? &TILE_AT(x + 1, y) : NULL
+            };
+            uint8_t direction = 0;
+            for (uint8_t i = 0; i < 4; ++i) {
+                if (
+                    adjacent_tiles[i] &&
+                    adjacent_tiles[i]->cell.energy == 0 &&
+                    (
+                        !selected_tile ||
+                        adjacent_tiles[i]->energy > selected_tile->energy
+                    )
+                ) {
+                    selected_tile = adjacent_tiles[i];
+                    direction = i;
+                }
+            }
+            if (selected_tile) {
+                DOC_EVENT(EVENT_DIVISION_UP + direction);
+                tile->cell.energy /= 2;
+                selected_tile->cell.energy = tile->cell.energy;
+                selected_tile->cell.age = 0;
+                selected_tile->cell.evolution_info = tile->cell.evolution_info;
+                tile = selected_tile;
+                DOC_EVENT(EVENT_BIRTH_UP + direction);
+            }
+        }
+    }
+}
+
+static inline void advance_evolution(void) {
+    for (uint16_t x = 0; x < world.w; ++x) {
+        for (uint16_t y = 0; y < world.h; ++y) {
+            struct tile *tile = &TILE_AT(x, y);
+            if (ANY_EVENT()) {
+                continue;
+            }
+            for (evolution_info_t i = 0; i < EVOLUTION_COUNT; ++i) {
+                if (
+                    !(tile->cell.evolution_info & (1 << i)) &&
+                    tile->cell.age >= evolutions[i].eligibility &&
+                    tile->cell.energy >= evolutions[i].cost &&
+                    rng_rand() % evolutions[i].prob == 0
+                ) {
+                    tile->cell.ongoing_evolution = &evolutions[i];
+                    break;
+                }
+            }
+        }
+    }
+}
+
+static void advance(void) {
+    ++world.gen;
+    live_cell_count = 0;
+    advance_age();
+    advance_harvesting();
+    advance_living();
+    advance_pulsing();
+    advance_instinct();
+    advance_reproduction();
+    advance_evolution();
     return;
 }
 
@@ -1440,7 +1538,7 @@ static bool ux_generation(void) {
 
 #define MIN_SPEED 1
 #define DEFAULT_SPEED 1
-#define MAX_SPEED 8
+#define MAX_SPEED 4
 
 static bool ux_sim(void) {
     static bool is_ready = false;
@@ -1782,14 +1880,18 @@ static bool ux_sim(void) {
             if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
                 return false;
             }
-            select_still_frame(
-                &srcrect,
-                STILL_CELL
-            );
-            bool to_draw = tile->cell.energy != 0;
-            if (animation_tick != 0) {
-                switch (tile->ev.type) {
-                case EVENT_NONE:
+            if (animation_tick == 0) {
+                if (tile->cell.energy != 0) {
+                    select_still_frame(
+                        &srcrect,
+                        STILL_CELL
+                    );
+                    if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
+                        return false;
+                    }
+                }
+            } else {
+                if (NO_EVENT() && tile->cell.energy != 0) {
                     select_animation_frame(
                         &srcrect,
                         ANIMATION_CELL_TWITCH,
@@ -1797,8 +1899,11 @@ static bool ux_sim(void) {
                         speed,
                         DIRECTION_NONE
                     );
-                    break;
-                case EVENT_DEATH:
+                    if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
+                        return false;
+                    }
+                }
+                if (EVENT(EVENT_DEATH)) {
                     select_animation_frame(
                         &srcrect,
                         ANIMATION_CELL_DEATH,
@@ -1806,27 +1911,11 @@ static bool ux_sim(void) {
                         speed,
                         DIRECTION_NONE
                     );
-                    to_draw = true;
-                    break;
-                case EVENT_BIRTH:
-                    select_animation_frame(
-                        &srcrect,
-                        ANIMATION_CELL_BIRTH,
-                        curr_tick - animation_tick,
-                        speed,
-                        tile->ev.direction
-                    );
-                    break;
-                case EVENT_DIVISION:
-                    select_animation_frame(
-                        &srcrect,
-                        ANIMATION_CELL_DIVISION,
-                        curr_tick - animation_tick,
-                        speed,
-                        tile->ev.direction
-                    );
-                    break;
-                case EVENT_PULSE:
+                    if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
+                        return false;
+                    }
+                }
+                if (EVENT(EVENT_PULSE)) {
                     select_animation_frame(
                         &srcrect,
                         ANIMATION_CELL_PULSE,
@@ -1834,28 +1923,202 @@ static bool ux_sim(void) {
                         speed,
                         DIRECTION_NONE
                     );
-                    break;
-                case EVENT_MOVE_TO:
+                    if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
+                        return false;
+                    }
+                }
+                if (EVENT(EVENT_DIVISION_UP)) {
                     select_animation_frame(
                         &srcrect,
-                        ANIMATION_CELL_MOVE_TO,
+                        ANIMATION_CELL_DIVISION,
                         curr_tick - animation_tick,
                         speed,
-                        tile->ev.direction
+                        DIRECTION_UP
                     );
-                    break;
-                case EVENT_MOVE_FROM:
+                    if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
+                        return false;
+                    }
+                }
+                if (EVENT(EVENT_DIVISION_DOWN)) {
+                    select_animation_frame(
+                        &srcrect,
+                        ANIMATION_CELL_DIVISION,
+                        curr_tick - animation_tick,
+                        speed,
+                        DIRECTION_DOWN
+                    );
+                    if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
+                        return false;
+                    }
+                }
+                if (EVENT(EVENT_DIVISION_LEFT)) {
+                    select_animation_frame(
+                        &srcrect,
+                        ANIMATION_CELL_DIVISION,
+                        curr_tick - animation_tick,
+                        speed,
+                        DIRECTION_LEFT
+                    );
+                    if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
+                        return false;
+                    }
+                }
+                if (EVENT(EVENT_DIVISION_RIGHT)) {
+                    select_animation_frame(
+                        &srcrect,
+                        ANIMATION_CELL_DIVISION,
+                        curr_tick - animation_tick,
+                        speed,
+                        DIRECTION_RIGHT
+                    );
+                    if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
+                        return false;
+                    }
+                }
+                if (EVENT(EVENT_BIRTH_UP)) {
+                    select_animation_frame(
+                        &srcrect,
+                        ANIMATION_CELL_BIRTH,
+                        curr_tick - animation_tick,
+                        speed,
+                        DIRECTION_UP
+                    );
+                    if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
+                        return false;
+                    }
+                }
+                if (EVENT(EVENT_BIRTH_DOWN)) {
+                    select_animation_frame(
+                        &srcrect,
+                        ANIMATION_CELL_BIRTH,
+                        curr_tick - animation_tick,
+                        speed,
+                        DIRECTION_DOWN
+                    );
+                    if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
+                        return false;
+                    }
+                }
+                if (EVENT(EVENT_BIRTH_LEFT)) {
+                    select_animation_frame(
+                        &srcrect,
+                        ANIMATION_CELL_BIRTH,
+                        curr_tick - animation_tick,
+                        speed,
+                        DIRECTION_LEFT
+                    );
+                    if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
+                        return false;
+                    }
+                }
+                if (EVENT(EVENT_BIRTH_RIGHT)) {
+                    select_animation_frame(
+                        &srcrect,
+                        ANIMATION_CELL_BIRTH,
+                        curr_tick - animation_tick,
+                        speed,
+                        DIRECTION_RIGHT
+                    );
+                    if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
+                        return false;
+                    }
+                }
+                if (EVENT(EVENT_MOVE_FROM_UP)) {
                     select_animation_frame(
                         &srcrect,
                         ANIMATION_CELL_MOVE_FROM,
                         curr_tick - animation_tick,
                         speed,
-                        tile->ev.direction
+                        DIRECTION_UP
                     );
+                    if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
+                        return false;
+                    }
                 }
-            }
-            if (to_draw && SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
-                return false;
+                if (EVENT(EVENT_MOVE_FROM_DOWN)) {
+                    select_animation_frame(
+                        &srcrect,
+                        ANIMATION_CELL_MOVE_FROM,
+                        curr_tick - animation_tick,
+                        speed,
+                        DIRECTION_DOWN
+                    );
+                    if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
+                        return false;
+                    }
+                }
+                if (EVENT(EVENT_MOVE_FROM_LEFT)) {
+                    select_animation_frame(
+                        &srcrect,
+                        ANIMATION_CELL_MOVE_FROM,
+                        curr_tick - animation_tick,
+                        speed,
+                        DIRECTION_LEFT
+                    );
+                    if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
+                        return false;
+                    }
+                }
+                if (EVENT(EVENT_MOVE_FROM_RIGHT)) {
+                    select_animation_frame(
+                        &srcrect,
+                        ANIMATION_CELL_MOVE_FROM,
+                        curr_tick - animation_tick,
+                        speed,
+                        DIRECTION_RIGHT
+                    );
+                    if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
+                        return false;
+                    }
+                }
+                if (EVENT(EVENT_MOVE_TO_UP)) {
+                    select_animation_frame(
+                        &srcrect,
+                        ANIMATION_CELL_MOVE_TO,
+                        curr_tick - animation_tick,
+                        speed,
+                        DIRECTION_UP
+                    );
+                    if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
+                        return false;
+                    }
+                }
+                if (EVENT(EVENT_MOVE_TO_DOWN)) {
+                    select_animation_frame(
+                        &srcrect,
+                        ANIMATION_CELL_MOVE_TO,
+                        curr_tick - animation_tick,
+                        speed,
+                        DIRECTION_DOWN
+                    );
+                    if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
+                        return false;
+                    }
+                }
+                if (EVENT(EVENT_MOVE_TO_LEFT)) {
+                    select_animation_frame(
+                        &srcrect,
+                        ANIMATION_CELL_MOVE_TO,
+                        curr_tick - animation_tick,
+                        speed,
+                        DIRECTION_LEFT
+                    );
+                    if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
+                        return false;
+                    }
+                }
+                if (EVENT(EVENT_MOVE_TO_RIGHT)) {
+                    select_animation_frame(
+                        &srcrect,
+                        ANIMATION_CELL_MOVE_TO,
+                        curr_tick - animation_tick,
+                        speed,
+                        DIRECTION_RIGHT
+                    );
+                    if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
+                        return false;
+                    }
+                }
             }
         }
     }
