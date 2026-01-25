@@ -79,3 +79,41 @@ All notable changes to this project will be documented here.
 - Fixed a long-term bug with world generation, where the chance for a live cell to spawn on a tile was 2% for each tile, even though it was supposed to be 10% according to the official written rule.
 
 ### v0.1.0 - 01/17/2026
+
+### v0.2.0 alpha 1 - 01/25/2026
+
+#### Added:
+
+- Added a new death rule so that when a cell dies, the energy on the tile below it increases by the age of the dead cell.
+
+- Added the cell evolution system and the first evolution - motility, the ability to move.
+
+- Added new passive twitching animations for cells.
+
+#### Changed:
+
+- Modified reproduction rules so that one of the cells retains the mother cell's age post-division.
+
+- Revamped all sprites.
+
+- Revamped the quit icon.
+
+- Changed the default speed from 1x to 2x.
+
+- Refactored the internal advancement flow for a more balanced simulation.
+
+- Completely reimplemented the internal cell event managing system for improved efficiency.
+
+- Performed many memory optimizations.
+
+- Rewrote many code components better and more optimized.
+
+- Plus many other small tweaks...
+
+#### Fixed:
+
+- Fixed a long-term bug where a cell would reproduce as soon as it had enough energy to do so, contradicting the written rules.
+
+- Fixed more zooming bugs.
+
+- Plus many other small corrections...
