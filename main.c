@@ -68,9 +68,9 @@ static struct nk_font_atlas *font_atlas;
 
 static struct nk_image icons[8];
 
-#define STILL_TILE     0
-#define STILL_CELL     1
-#define STILL_POINTER 15
+#define STILL_TILE    0
+#define STILL_CELL    1
+#define STILL_POINTER 3
 
 static inline void select_still_frame(
     SDL_Rect *srcrect,
@@ -80,29 +80,33 @@ static inline void select_still_frame(
     srcrect->y = 0;
 }
 
-#define ANIMATION_CELL_TWITCH    1
-#define ANIMATION_CELL_DEATH     2
-#define ANIMATION_CELL_BIRTH     3
-#define ANIMATION_CELL_DIVISION  4
-#define ANIMATION_CELL_PULSE     5
-#define ANIMATION_CELL_MOVE_TO   6
-#define ANIMATION_CELL_MOVE_FROM 7
-
-enum rotation {
-    ROTATION_0,
-    ROTATION_90,
-    ROTATION_180,
-    ROTATION_270
-};
+#define ANIMATION_TWITCH           1
+#define ANIMATION_DEATH            2
+#define ANIMATION_PULSE            3
+#define ANIMATION_BIRTH_UP         4
+#define ANIMATION_BIRTH_DOWN       5
+#define ANIMATION_BIRTH_LEFT       6
+#define ANIMATION_BIRTH_RIGHT      7
+#define ANIMATION_DIVISION_UP      8
+#define ANIMATION_DIVISION_DOWN    9
+#define ANIMATION_DIVISION_LEFT   10
+#define ANIMATION_DIVISION_RIGHT  11
+#define ANIMATION_MOVE_TO_UP      12
+#define ANIMATION_MOVE_TO_DOWN    13
+#define ANIMATION_MOVE_TO_LEFT    14
+#define ANIMATION_MOVE_TO_RIGHT   15
+#define ANIMATION_MOVE_FROM_UP    16
+#define ANIMATION_MOVE_FROM_DOWN  17
+#define ANIMATION_MOVE_FROM_LEFT  18
+#define ANIMATION_MOVE_FROM_RIGHT 19
 
 static inline void select_animation_frame(
     SDL_Rect *srcrect,
     uint8_t atlas_id,
     uint32_t tick_diff,
-    uint8_t speed,
-    enum rotation rotation
+    uint8_t speed
 ) {
-    srcrect->x = (tick_diff / (1000 / (ANIMATION_FPS * speed)) + rotation % 4 * 4) * TILE_WIDTH;
+    srcrect->x = tick_diff / (1000 / (ANIMATION_FPS * speed)) * TILE_WIDTH;
     srcrect->y = atlas_id * TILE_HEIGHT;
 }
 
@@ -1893,10 +1897,9 @@ static bool ux_sim(void) {
                 if (NO_EVENT() && tile->cell.energy != 0) {
                     select_animation_frame(
                         &srcrect,
-                        ANIMATION_CELL_TWITCH,
+                        ANIMATION_TWITCH,
                         curr_tick - animation_tick,
-                        speed,
-                        ROTATION_0
+                        speed
                     );
                     if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
                         return false;
@@ -1905,10 +1908,9 @@ static bool ux_sim(void) {
                 if (EVENT(EVENT_DEATH)) {
                     select_animation_frame(
                         &srcrect,
-                        ANIMATION_CELL_DEATH,
+                        ANIMATION_DEATH,
                         curr_tick - animation_tick,
-                        speed,
-                        ROTATION_0
+                        speed
                     );
                     if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
                         return false;
@@ -1917,10 +1919,9 @@ static bool ux_sim(void) {
                 if (EVENT(EVENT_PULSE)) {
                     select_animation_frame(
                         &srcrect,
-                        ANIMATION_CELL_PULSE,
+                        ANIMATION_PULSE,
                         curr_tick - animation_tick,
-                        speed,
-                        ROTATION_0
+                        speed
                     );
                     if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
                         return false;
@@ -1929,10 +1930,9 @@ static bool ux_sim(void) {
                 if (EVENT(EVENT_DIVISION_UP)) {
                     select_animation_frame(
                         &srcrect,
-                        ANIMATION_CELL_DIVISION,
+                        ANIMATION_DIVISION_UP,
                         curr_tick - animation_tick,
-                        speed,
-                        ROTATION_0
+                        speed
                     );
                     if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
                         return false;
@@ -1941,10 +1941,9 @@ static bool ux_sim(void) {
                 if (EVENT(EVENT_DIVISION_DOWN)) {
                     select_animation_frame(
                         &srcrect,
-                        ANIMATION_CELL_DIVISION,
+                        ANIMATION_DIVISION_DOWN,
                         curr_tick - animation_tick,
-                        speed,
-                        ROTATION_180
+                        speed
                     );
                     if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
                         return false;
@@ -1953,10 +1952,9 @@ static bool ux_sim(void) {
                 if (EVENT(EVENT_DIVISION_LEFT)) {
                     select_animation_frame(
                         &srcrect,
-                        ANIMATION_CELL_DIVISION,
+                        ANIMATION_DIVISION_LEFT,
                         curr_tick - animation_tick,
-                        speed,
-                        ROTATION_270
+                        speed
                     );
                     if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
                         return false;
@@ -1965,10 +1963,9 @@ static bool ux_sim(void) {
                 if (EVENT(EVENT_DIVISION_RIGHT)) {
                     select_animation_frame(
                         &srcrect,
-                        ANIMATION_CELL_DIVISION,
+                        ANIMATION_DIVISION_RIGHT,
                         curr_tick - animation_tick,
-                        speed,
-                        ROTATION_90
+                        speed
                     );
                     if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
                         return false;
@@ -1977,10 +1974,9 @@ static bool ux_sim(void) {
                 if (EVENT(EVENT_BIRTH_UP)) {
                     select_animation_frame(
                         &srcrect,
-                        ANIMATION_CELL_BIRTH,
+                        ANIMATION_BIRTH_UP,
                         curr_tick - animation_tick,
-                        speed,
-                        ROTATION_0
+                        speed
                     );
                     if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
                         return false;
@@ -1989,10 +1985,9 @@ static bool ux_sim(void) {
                 if (EVENT(EVENT_BIRTH_DOWN)) {
                     select_animation_frame(
                         &srcrect,
-                        ANIMATION_CELL_BIRTH,
+                        ANIMATION_BIRTH_DOWN,
                         curr_tick - animation_tick,
-                        speed,
-                        ROTATION_180
+                        speed
                     );
                     if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
                         return false;
@@ -2001,10 +1996,9 @@ static bool ux_sim(void) {
                 if (EVENT(EVENT_BIRTH_LEFT)) {
                     select_animation_frame(
                         &srcrect,
-                        ANIMATION_CELL_BIRTH,
+                        ANIMATION_BIRTH_LEFT,
                         curr_tick - animation_tick,
-                        speed,
-                        ROTATION_270
+                        speed
                     );
                     if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
                         return false;
@@ -2013,10 +2007,9 @@ static bool ux_sim(void) {
                 if (EVENT(EVENT_BIRTH_RIGHT)) {
                     select_animation_frame(
                         &srcrect,
-                        ANIMATION_CELL_BIRTH,
+                        ANIMATION_BIRTH_RIGHT,
                         curr_tick - animation_tick,
-                        speed,
-                        ROTATION_90
+                        speed
                     );
                     if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
                         return false;
@@ -2025,10 +2018,9 @@ static bool ux_sim(void) {
                 if (EVENT(EVENT_MOVE_FROM_UP)) {
                     select_animation_frame(
                         &srcrect,
-                        ANIMATION_CELL_MOVE_FROM,
+                        ANIMATION_MOVE_FROM_UP,
                         curr_tick - animation_tick,
-                        speed,
-                        ROTATION_0
+                        speed
                     );
                     if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
                         return false;
@@ -2037,10 +2029,9 @@ static bool ux_sim(void) {
                 if (EVENT(EVENT_MOVE_FROM_DOWN)) {
                     select_animation_frame(
                         &srcrect,
-                        ANIMATION_CELL_MOVE_FROM,
+                        ANIMATION_MOVE_FROM_DOWN,
                         curr_tick - animation_tick,
-                        speed,
-                        ROTATION_180
+                        speed
                     );
                     if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
                         return false;
@@ -2049,10 +2040,9 @@ static bool ux_sim(void) {
                 if (EVENT(EVENT_MOVE_FROM_LEFT)) {
                     select_animation_frame(
                         &srcrect,
-                        ANIMATION_CELL_MOVE_FROM,
+                        ANIMATION_MOVE_FROM_LEFT,
                         curr_tick - animation_tick,
-                        speed,
-                        ROTATION_270
+                        speed
                     );
                     if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
                         return false;
@@ -2061,10 +2051,9 @@ static bool ux_sim(void) {
                 if (EVENT(EVENT_MOVE_FROM_RIGHT)) {
                     select_animation_frame(
                         &srcrect,
-                        ANIMATION_CELL_MOVE_FROM,
+                        ANIMATION_MOVE_FROM_RIGHT,
                         curr_tick - animation_tick,
-                        speed,
-                        ROTATION_90
+                        speed
                     );
                     if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
                         return false;
@@ -2073,10 +2062,9 @@ static bool ux_sim(void) {
                 if (EVENT(EVENT_MOVE_TO_UP)) {
                     select_animation_frame(
                         &srcrect,
-                        ANIMATION_CELL_MOVE_TO,
+                        ANIMATION_MOVE_TO_UP,
                         curr_tick - animation_tick,
-                        speed,
-                        ROTATION_0
+                        speed
                     );
                     if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
                         return false;
@@ -2085,10 +2073,9 @@ static bool ux_sim(void) {
                 if (EVENT(EVENT_MOVE_TO_DOWN)) {
                     select_animation_frame(
                         &srcrect,
-                        ANIMATION_CELL_MOVE_TO,
+                        ANIMATION_MOVE_TO_DOWN,
                         curr_tick - animation_tick,
-                        speed,
-                        ROTATION_180
+                        speed
                     );
                     if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
                         return false;
@@ -2097,10 +2084,9 @@ static bool ux_sim(void) {
                 if (EVENT(EVENT_MOVE_TO_LEFT)) {
                     select_animation_frame(
                         &srcrect,
-                        ANIMATION_CELL_MOVE_TO,
+                        ANIMATION_MOVE_TO_LEFT,
                         curr_tick - animation_tick,
-                        speed,
-                        ROTATION_270
+                        speed
                     );
                     if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
                         return false;
@@ -2109,10 +2095,9 @@ static bool ux_sim(void) {
                 if (EVENT(EVENT_MOVE_TO_RIGHT)) {
                     select_animation_frame(
                         &srcrect,
-                        ANIMATION_CELL_MOVE_TO,
+                        ANIMATION_MOVE_TO_RIGHT,
                         curr_tick - animation_tick,
-                        speed,
-                        ROTATION_90
+                        speed
                     );
                     if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
                         return false;
