@@ -21,8 +21,8 @@
 #include <nuklear_sdl_renderer.h>
 
 #define TITLE "evolution-sim"
-#define VERSION "v0.2.0 alpha 1"
-#define RELEASE_DATE "01/25/2026"
+#define VERSION "v0.2.0 alpha 2 preview"
+#define RELEASE_DATE "01/26/2026"
 
 static uint32_t rng_state, rng_seed;
 
@@ -72,7 +72,7 @@ static struct nk_image icons[8];
 #define STILL_CELL    1
 #define STILL_POINTER 3
 
-static inline void select_still_frame(
+static void select_still_frame(
     SDL_Rect *srcrect,
     uint8_t atlas_idx
 ) {
@@ -100,7 +100,7 @@ static inline void select_still_frame(
 #define ANIMATION_MOVE_FROM_LEFT  18
 #define ANIMATION_MOVE_FROM_RIGHT 19
 
-static inline void select_animation_frame(
+static void select_animation_frame(
     SDL_Rect *srcrect,
     uint8_t atlas_id,
     uint32_t tick_diff,
@@ -120,7 +120,7 @@ static inline void select_animation_frame(
 
 struct nk_style_button style_button_disabled;
 
-static inline void nk_skin(void) {
+static void nk_skin(void) {
     nk_ctx->style.window.fixed_background.data.color = nk_rgba_u32(0);
     nk_ctx->style.window.padding = nk_vec2(0, 0);
     nk_ctx->style.text.color = COLOR_FG;
@@ -155,7 +155,7 @@ static inline void nk_skin(void) {
 #define TEXTURE_PATH "texture_atlas.png"
 #define FONT_PATH    "Ubuntu-R.ttf"
 
-static inline bool init(void) {
+static bool init(void) {
     if (
         SDL_Init(SDL_INIT_VIDEO) != 0 ||
         !(IMG_Init(IMG_INIT_PNG) & IMG_INIT_PNG)
@@ -227,7 +227,7 @@ static inline bool init(void) {
     return true;
 }
 
-static inline void quit(void) {
+static void quit(void) {
     nk_font_atlas_cleanup(font_atlas);
     SDL_DestroyTexture(texture);
     nk_sdl_shutdown();
@@ -918,7 +918,7 @@ static union gui_element gui_elements[] = {
 #define GUI_LABEL_VERSION                gui_elements[28].text_element
 #define GUI_LABEL_RELEASE_DATE           gui_elements[29].text_element
 
-static inline bool start_gui(void) {
+static bool start_gui(void) {
     for (uint8_t i = 0; i < GUI_ELEMENT_COUNT; ++i) {
         switch (gui_elements[i].type) {
         case GUI_TEXT:
@@ -947,7 +947,7 @@ static inline bool start_gui(void) {
     return true;
 }
 
-static inline void do_gui(void) {
+static void do_gui(void) {
     if (
         nk_begin(
             nk_ctx,
@@ -1130,7 +1130,7 @@ static inline void do_gui(void) {
     nk_end(nk_ctx);
 }
 
-static inline void end_gui(void) {
+static void end_gui(void) {
     for (uint8_t i = 0; i < GUI_ELEMENT_COUNT; ++i) {
         switch (gui_elements[i].type) {
         case GUI_TEXT:
@@ -1262,7 +1262,7 @@ static bool generate(void) {
 
 uint32_t live_cell_count;
 
-static inline void advance_age(void) {
+static void advance_age(void) {
     for (uint16_t x = 0; x < world.w; ++x) {
         for (uint16_t y = 0; y < world.h; ++y) {
             struct tile *tile = &TILE_AT(x, y);
@@ -1274,7 +1274,7 @@ static inline void advance_age(void) {
     }
 }
 
-static inline void advance_harvesting(void) {
+static void advance_harvesting(void) {
     for (uint16_t x = 0; x < world.w; ++x) {
         for (uint16_t y = 0; y < world.h; ++y) {
             struct tile *tile = &TILE_AT(x, y);
@@ -1293,7 +1293,7 @@ static inline void advance_harvesting(void) {
     }
 }
 
-static inline void advance_living(void) {
+static void advance_living(void) {
     for (uint16_t x = 0; x < world.w; ++x) {
         for (uint16_t y = 0; y < world.h; ++y) {
             struct tile *tile = &TILE_AT(x, y);
@@ -1314,7 +1314,7 @@ static inline void advance_living(void) {
     }
 }
 
-static inline void advance_pulsing(void) {
+static void advance_pulsing(void) {
     for (uint16_t x = 0; x < world.w; ++x) {
         for (uint16_t y = 0; y < world.h; ++y) {
             struct tile *tile = &TILE_AT(x, y);
@@ -1335,7 +1335,7 @@ static inline void advance_pulsing(void) {
     }
 }
 
-static inline void advance_instinct(void) {
+static void advance_instinct(void) {
     for (uint16_t x = 0; x < world.w; ++x) {
         for (uint16_t y = 0; y < world.h; ++y) {
             struct tile *tile = &TILE_AT(x, y);
@@ -1384,7 +1384,7 @@ static inline void advance_instinct(void) {
     }
 }
 
-static inline void advance_reproduction(void) {
+static void advance_reproduction(void) {
     for (uint16_t x = 0; x < world.w; ++x) {
         for (uint16_t y = 0; y < world.h; ++y) {
             struct tile *tile = &TILE_AT(x, y);
@@ -1430,7 +1430,7 @@ static inline void advance_reproduction(void) {
     }
 }
 
-static inline void advance_evolution(void) {
+static void advance_evolution(void) {
     for (uint16_t x = 0; x < world.w; ++x) {
         for (uint16_t y = 0; y < world.h; ++y) {
             struct tile *tile = &TILE_AT(x, y);
@@ -2128,7 +2128,7 @@ static bool ux_sim(void) {
     return true;
 }
 
-static inline bool tick(void) {
+static bool tick(void) {
     SDL_GetWindowSize(window, &window_w, &window_h);
     scroll_x = 0;
     scroll_y = 0;
