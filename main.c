@@ -26,11 +26,11 @@
 
 static uint32_t rng_state, rng_seed;
 
-void rng_srand(uint32_t seed) {
+static void rng_srand(uint32_t seed) {
     rng_state = rng_seed = seed == 0 ? (uint32_t)time(NULL) : seed;
 }
 
-uint32_t rng_rand(void) {
+static uint32_t rng_rand(void) {
     uint32_t rng_output = (rng_state += 0x9E3779B9);
     rng_output = (rng_output ^ (rng_output >> 16)) * 0x85EBCA6B;
     rng_output = (rng_output ^ (rng_output >> 13)) * 0xC2B2AE35;
@@ -118,7 +118,7 @@ static void select_animation_frame(
 #define COLOR_BORDER         nk_rgba(0xC8, 0x00, 0x5A, 0xFF)
 #define COLOR_CUSTOM_QUALITY nk_rgba(0x39, 0xFF, 0x14, 0xFF)
 
-struct nk_style_button style_button_disabled;
+static struct nk_style_button style_button_disabled;
 
 static void nk_skin(void) {
     nk_ctx->style.window.fixed_background.data.color = nk_rgba_u32(0);
@@ -237,7 +237,7 @@ static void quit(void) {
     SDL_Quit();
 }
 
-int32_t window_w, window_h;
+static int32_t window_w, window_h;
 
 enum ux_state {
     UX_ANY,
@@ -269,7 +269,7 @@ struct gui_label_element {
     struct nk_rect (*const pos)();
 };
 
-struct nk_rect label_world_size_pos(void) {
+static struct nk_rect label_world_size_pos(void) {
     return nk_rect(
         window_w / 2 - 150,
         window_h / 2 - 72,
@@ -278,7 +278,7 @@ struct nk_rect label_world_size_pos(void) {
     );
 }
 
-struct nk_rect label_seed_pos(void) {
+static struct nk_rect label_seed_pos(void) {
     return nk_rect(
         window_w / 2 - 150,
         window_h / 2 + 8,
@@ -287,7 +287,7 @@ struct nk_rect label_seed_pos(void) {
     );
 }
 
-struct nk_rect label_mul_pos(void) {
+static struct nk_rect label_mul_pos(void) {
     return nk_rect(
         window_w / 2 - 11,
         window_h / 2 - 32,
@@ -296,7 +296,7 @@ struct nk_rect label_mul_pos(void) {
     );
 }
 
-struct nk_rect label_generating_pos(void) {
+static struct nk_rect label_generating_pos(void) {
     return nk_rect(
         10,
         window_h / 2 - 12,
@@ -305,7 +305,7 @@ struct nk_rect label_generating_pos(void) {
     );
 }
 
-struct nk_rect label_version_pos(void) {
+static struct nk_rect label_version_pos(void) {
     return nk_rect(
         10,
         window_h - 58,
@@ -314,7 +314,7 @@ struct nk_rect label_version_pos(void) {
     );
 }
 
-struct nk_rect label_release_date_pos(void) {
+static struct nk_rect label_release_date_pos(void) {
     return nk_rect(
         10,
         window_h - 34,
@@ -332,7 +332,7 @@ struct gui_text_element {
     struct nk_rect (*const pos)();
 };
 
-struct nk_rect text_error_pos(void) {
+static struct nk_rect text_error_pos(void) {
     return nk_rect(
         window_w / 2 - 300,
         window_h / 2 + 200,
@@ -341,7 +341,7 @@ struct nk_rect text_error_pos(void) {
     );
 }
 
-struct nk_rect text_zoom_pos(void) {
+static struct nk_rect text_zoom_pos(void) {
     return nk_rect(
         260,
         20,
@@ -350,7 +350,7 @@ struct nk_rect text_zoom_pos(void) {
     );
 }
 
-struct nk_rect text_speed_pos(void) {
+static struct nk_rect text_speed_pos(void) {
     return nk_rect(
         500,
         20,
@@ -359,7 +359,7 @@ struct nk_rect text_speed_pos(void) {
     );
 }
 
-struct nk_rect text_report_pointer_pos_pos(void) {
+static struct nk_rect text_report_pointer_pos_pos(void) {
     return nk_rect(
         10,
         70,
@@ -368,7 +368,7 @@ struct nk_rect text_report_pointer_pos_pos(void) {
     );
 }
 
-struct nk_rect text_report_curr_tile_energy_pos(void) {
+static struct nk_rect text_report_curr_tile_energy_pos(void) {
     return nk_rect(
         10,
         104,
@@ -377,7 +377,7 @@ struct nk_rect text_report_curr_tile_energy_pos(void) {
     );
 }
 
-struct nk_rect text_report_curr_cell_age_pos(void) {
+static struct nk_rect text_report_curr_cell_age_pos(void) {
     return nk_rect(
         10,
         138,
@@ -386,7 +386,7 @@ struct nk_rect text_report_curr_cell_age_pos(void) {
     );
 }
 
-struct nk_rect text_report_curr_cell_energy_pos(void) {
+static struct nk_rect text_report_curr_cell_energy_pos(void) {
     return nk_rect(
         10,
         172,
@@ -395,7 +395,7 @@ struct nk_rect text_report_curr_cell_energy_pos(void) {
     );
 }
 
-struct nk_rect text_report_world_size_pos(void) {
+static struct nk_rect text_report_world_size_pos(void) {
     return nk_rect(
         10,
         window_h - 106,
@@ -404,7 +404,7 @@ struct nk_rect text_report_world_size_pos(void) {
     );
 }
 
-struct nk_rect text_report_seed_pos(void) {
+static struct nk_rect text_report_seed_pos(void) {
     return nk_rect(
         10,
         window_h - 82,
@@ -413,7 +413,7 @@ struct nk_rect text_report_seed_pos(void) {
     );
 }
 
-struct nk_rect text_report_gen_pos(void) {
+static struct nk_rect text_report_gen_pos(void) {
     return nk_rect(
         10,
         window_h - 58,
@@ -422,7 +422,7 @@ struct nk_rect text_report_gen_pos(void) {
     );
 }
 
-struct nk_rect text_report_live_cell_count_pos(void) {
+static struct nk_rect text_report_live_cell_count_pos(void) {
     return nk_rect(
         10,
         window_h - 34,
@@ -440,7 +440,7 @@ struct gui_input_element {
     struct nk_rect (*const pos)();
 };
 
-struct nk_rect input_world_width_pos(void) {
+static struct nk_rect input_world_width_pos(void) {
     return nk_rect(
         window_w / 2 - 150,
         window_h / 2 - 40,
@@ -449,7 +449,7 @@ struct nk_rect input_world_width_pos(void) {
     );
 }
 
-struct nk_rect input_world_height_pos(void) {
+static struct nk_rect input_world_height_pos(void) {
     return nk_rect(
         window_w / 2 + 16,
         window_h / 2 - 40,
@@ -458,7 +458,7 @@ struct nk_rect input_world_height_pos(void) {
     );
 }
 
-struct nk_rect input_seed_pos(void) {
+static struct nk_rect input_seed_pos(void) {
     return nk_rect(
         window_w / 2 - 150,
         window_h / 2 + 40,
@@ -475,7 +475,7 @@ struct gui_button_element {
     struct nk_rect (*const pos)();
 };
 
-struct nk_rect button_generate_pos(void) {
+static struct nk_rect button_generate_pos(void) {
     return nk_rect(
         window_w / 2 - 100,
         window_h / 2 + 120,
@@ -492,7 +492,7 @@ struct gui_icon_button_element {
     struct nk_rect (*const pos)();
 };
 
-struct nk_rect icon_button_start_pos(void) {
+static struct nk_rect icon_button_start_pos(void) {
     return nk_rect(
         10,
         10,
@@ -501,7 +501,7 @@ struct nk_rect icon_button_start_pos(void) {
     );
 }
 
-struct nk_rect icon_button_stop_pos(void) {
+static struct nk_rect icon_button_stop_pos(void) {
     return nk_rect(
         60,
         10,
@@ -510,7 +510,7 @@ struct nk_rect icon_button_stop_pos(void) {
     );
 }
 
-struct nk_rect icon_button_step_pos(void) {
+static struct nk_rect icon_button_step_pos(void) {
     return nk_rect(
         110,
         10,
@@ -519,7 +519,7 @@ struct nk_rect icon_button_step_pos(void) {
     );
 }
 
-struct nk_rect icon_button_zoom_in_pos(void) {
+static struct nk_rect icon_button_zoom_in_pos(void) {
     return nk_rect(
         210,
         10,
@@ -528,7 +528,7 @@ struct nk_rect icon_button_zoom_in_pos(void) {
     );
 }
 
-struct nk_rect icon_button_zoom_out_pos(void) {
+static struct nk_rect icon_button_zoom_out_pos(void) {
     return nk_rect(
         350,
         10,
@@ -537,7 +537,7 @@ struct nk_rect icon_button_zoom_out_pos(void) {
     );
 }
 
-struct nk_rect icon_button_speed_up_pos(void) {
+static struct nk_rect icon_button_speed_up_pos(void) {
     return nk_rect(
         450,
         10,
@@ -546,7 +546,7 @@ struct nk_rect icon_button_speed_up_pos(void) {
     );
 }
 
-struct nk_rect icon_button_slow_down_pos(void) {
+static struct nk_rect icon_button_slow_down_pos(void) {
     return nk_rect(
         550,
         10,
@@ -555,7 +555,7 @@ struct nk_rect icon_button_slow_down_pos(void) {
     );
 }
 
-struct nk_rect icon_button_quit_pos(void) {
+static struct nk_rect icon_button_quit_pos(void) {
     return nk_rect(
         window_w - 50,
         10,
@@ -571,7 +571,7 @@ struct gui_panel_element {
     struct nk_rect (*const pos)();
 };
 
-struct nk_rect panel_controls_pos(void) {
+static struct nk_rect panel_controls_pos(void) {
     return nk_rect(
         -2,
         -2,
@@ -1260,7 +1260,7 @@ static bool generate(void) {
     return true;
 }
 
-uint32_t live_cell_count;
+static uint32_t live_cell_count;
 
 static void advance_age(void) {
     for (uint16_t x = 0; x < world.w; ++x) {
@@ -1465,9 +1465,9 @@ static void advance(void) {
     return;
 }
 
-bool is_running = true;
+static bool is_running = true;
 
-int32_t scroll_x, scroll_y;
+static int32_t scroll_x, scroll_y;
 
 static bool ux_creation(void) {
     uintmax_t potential_w = UINTMAX_MAX, potential_h = UINTMAX_MAX;
