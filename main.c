@@ -296,15 +296,6 @@ static struct nk_rect label_mul_pos(void) {
     );
 }
 
-static struct nk_rect label_generating_pos(void) {
-    return nk_rect(
-        10,
-        window_h / 2 - 12,
-        window_w - 20,
-        24
-    );
-}
-
 static struct nk_rect label_version_pos(void) {
     return nk_rect(
         10,
@@ -337,6 +328,15 @@ static struct nk_rect text_error_pos(void) {
         window_w / 2 - 300,
         window_h / 2 + 200,
         600,
+        24
+    );
+}
+
+static struct nk_rect text_generating_pos(void) {
+    return nk_rect(
+        10,
+        window_h / 2 - 12,
+        window_w - 20,
         24
     );
 }
@@ -669,12 +669,13 @@ static union gui_element gui_elements[] = {
         }
     },
     {
-        .label_element = {
+        .text_element = {
+            .type = GUI_TEXT,
             .ux_state = UX_GENERATION,
-            .type = GUI_LABEL,
+            .max = 24,
             .alignment = NK_TEXT_ALIGN_CENTERED,
-            .text = "Generating world...",
-            .pos = label_generating_pos
+            .buffer = NULL,
+            .pos = text_generating_pos
         }
     },
     {
@@ -895,7 +896,7 @@ static union gui_element gui_elements[] = {
 #define GUI_INPUT_SEED                   gui_elements[ 5].input_element
 #define GUI_BUTTON_GENERATE              gui_elements[ 6].button_element
 #define GUI_TEXT_ERROR                   gui_elements[ 7].text_element
-#define GUI_LABEL_GENERATING             gui_elements[ 8].label_element
+#define GUI_TEXT_GENERATING              gui_elements[ 8].text_element
 #define GUI_PANEL_CONTROLS               gui_elements[ 9].panel_element
 #define GUI_ICON_BUTTON_START            gui_elements[10].icon_button_element
 #define GUI_ICON_BUTTON_STOP             gui_elements[11].icon_button_element
@@ -1240,9 +1241,14 @@ static struct world world;
 
 #define MAX_GENERATION_OPS_PER_TICK 1000000
 
+static uint32_t tiles_generated;
+
 static bool generate(void) {
     static uint16_t x = 0, y = 0;
     uint32_t operations = 0;
+    if (x == 0 && y == 0) {
+        tiles_generated = 0;
+    }
     for (; x < world.w; ++x) {
         for (; y < world.h; ++y) {
             if (++operations > MAX_GENERATION_OPS_PER_TICK) {
@@ -1260,6 +1266,7 @@ static bool generate(void) {
             if (rng_rand() % 10 == 0) {
                 tile->cell.energy = rng_rand() % 6 + 5;
             }
+            ++tiles_generated;
         }
         y = 0;
     }
@@ -1555,12 +1562,24 @@ static bool ux_creation(void) {
         world.w = potential_w;
         world.h = potential_h;
         ux_state = UX_GENERATION;
+        snprintf(
+            GUI_TEXT_GENERATING.buffer,
+            GUI_TEXT_GENERATING.max + 1,
+            "Generating world... 0%%"
+        );
     }
     return true;
 }
 
 static bool ux_generation(void) {
-    if (generate()) {
+    bool done = generate();
+    snprintf(
+        GUI_TEXT_GENERATING.buffer,
+        GUI_TEXT_GENERATING.max + 1,
+        "Generating world... %u%%",
+        (uint32_t)((float)tiles_generated / ((uint32_t)world.w * world.h) * 100)
+    );
+    if (done) {
         live_cell_count = 0;
         for (uint16_t x = 0; x < world.w; ++x) {
             for (uint16_t y = 0; y < world.h; ++y) {
