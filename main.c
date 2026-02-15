@@ -22,7 +22,7 @@
 
 #define TITLE "evolution-sim"
 #define VERSION "v0.2.0 alpha 2 preview"
-#define RELEASE_DATE "01/26/2026"
+#define RELEASE_DATE "02/15/2026"
 
 static uint32_t rng_state, rng_seed;
 
@@ -1165,12 +1165,20 @@ static const struct evolution evolutions[] = {
         .cost = 20,
         .timescale = 5,
         .prob = 2
+    },
+    {
+        .name = "Polydivision",
+        .eligibility = 40,
+        .cost = 10,
+        .timescale = 10,
+        .prob = 4
     }
 };
 
 #define EVOLUTION_COUNT sizeof(evolutions) / sizeof(struct evolution)
 
-#define EVOLUTION_MOTILITY evolutions[0]
+#define EVOLUTION_MOTILITY     evolutions[0]
+#define EVOLUTION_POLYDIVISION evolutions[1]
 
 #define EVOLUTION(evolution) (tile->cell.evolution_info & (1 << (&(evolution) - evolutions)))
 
@@ -1392,17 +1400,50 @@ static void advance_reproduction(void) {
                 ANY_EVENT() ||
                 tile->cell.age < 10 ||
                 tile->cell.energy < 10 ||
+                (EVOLUTION(EVOLUTION_POLYDIVISION) && tile->cell.energy < 20) ||
                 rng_rand() % 4 != 0
             ) {
                 continue;
             }
-            struct tile *selected_tile = NULL;
-            struct tile *adjacent_tiles[4]= {
+            struct tile *adjacent_tiles[4] = {
                 y > 0 ? &TILE_AT(x, y - 1) : NULL,
                 y < world.h - 1 ? &TILE_AT(x, y + 1) : NULL,
                 x > 0 ? &TILE_AT(x - 1, y) : NULL,
                 x < world.w - 1 ? &TILE_AT(x + 1, y) : NULL
             };
+            if (EVOLUTION(EVOLUTION_POLYDIVISION)) {
+                bool tile_selections[4] = {
+                    false,
+                    false,
+                    false,
+                    false
+                };
+                uint8_t tiles_selected = 0;
+                for (uint8_t i = 0; i < 4; ++i) {
+                    if (
+                        adjacent_tiles[i] &&
+                        adjacent_tiles[i]->cell.energy == 0
+                    ) {
+                        tile_selections[i] = true;
+                        ++tiles_selected;
+                    }
+                }
+                tile->cell.energy /= tiles_selected + 1;
+                struct tile *tile_bck = tile;
+                for (uint8_t i = 0; i < 4; ++i) {
+                    if (tile_selections[i]) {
+                        DOC_EVENT(EVENT_DIVISION_UP + i);
+                        adjacent_tiles[i]->cell.energy = tile->cell.energy;
+                        adjacent_tiles[i]->cell.age = 0;
+                        adjacent_tiles[i]->cell.evolution_info = tile->cell.evolution_info;
+                        tile = adjacent_tiles[i];
+                        DOC_EVENT(EVENT_BIRTH_UP + i);
+                        tile = tile_bck;
+                    }
+                }
+                continue;
+            }
+            struct tile *selected_tile = NULL;
             uint8_t direction = 0;
             for (uint8_t i = 0; i < 4; ++i) {
                 if (

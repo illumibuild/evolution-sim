@@ -98,7 +98,7 @@ If certain conditions are met, a cell has a chance to **evolve to unlock a new a
 Every evolution has to be **a certain minimum age or above**, requires **a certain amount of energy** and also takes **a certain number of generations** to complete, during which the cell **cannot act** - it cannot harvest more energy and cannot divide.
 Once a cell enters evolution, **every generation** of the evolution, **a percentage** of the **total energy required for the evolution** is **subtracted** from the cell's available energy.
 If the living cost causes the cell to run out of energy, **it dies** as usual, so **every evolution is also a risk**.
-Currently, the only evolution is **motility** - the ability to move.
+There are currently two evolutions - **motility** and **polydivision**.
 
 *Motility*
 
@@ -109,6 +109,18 @@ If there are **multiple** adjacent tiles with more energy, it moves to **the mos
 - cost: 20 energy
 - timescale: 5 generations
 - probability: 50% (1 in 2)
+
+*Polydivision*
+
+When a cell has this evolution, the **minimum energy** required for its **reproduction** is **doubled** to 20.
+However, instead of dividing itself into two cells, it divides itself into **as many cells as it can with the current provided space**, i.e. **the number of free adjacent tiles**, allowing for it to divide itself into **up to 5 cells** without **any additional energy costs** (aside from its already doubled requirement).
+The energy of the mother cell is **split equally** between all new cells, **losing** all energy that **can't** be equally split.
+Only the daughter cell **on the tile of the original mother cell** retains the mother cell's age.
+
+- eligibility: 40 age
+- cost: 10 energy
+- timescale: 10 generations
+- probability: 25% (1 in 4)
 
 #### Limits
 
