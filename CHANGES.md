@@ -117,3 +117,15 @@ All notable changes to this project will be documented here.
 - Fixed more zooming bugs.
 
 - Plus many other small corrections...
+
+### v0.2.0 alpha 2 - 02/15/2026
+
+#### Added:
+
+- Added a new evolution - polydivision, the ability to reproduce faster.
+
+- Added a percentage display on the world generation screen.
+
+#### Changed:
+
+- Many small tweaks...
