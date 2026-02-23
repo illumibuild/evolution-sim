@@ -21,8 +21,8 @@
 #include <nuklear_sdl_renderer.h>
 
 #define TITLE "evolution-sim"
-#define VERSION "v0.2.0 alpha 2"
-#define RELEASE_DATE "02/15/2026"
+#define VERSION "v0.2.0 alpha 3 preview"
+#define RELEASE_DATE "02/23/2026"
 
 static uint32_t rng_state, rng_seed;
 
@@ -1282,6 +1282,9 @@ static void advance_age(void) {
         for (uint16_t y = 0; y < world.h; ++y) {
             struct tile *tile = &TILE_AT(x, y);
             tile->ev_info = 0;
+            if (world.gen % 10 == 0) {
+                ++tile->energy;
+            }
             if (tile->cell.energy != 0) {
                 ++tile->cell.age;
             }
@@ -1314,8 +1317,7 @@ static void advance_living(void) {
             struct tile *tile = &TILE_AT(x, y);
             if (tile->cell.energy == 0) {
                 continue;
-            }
-            if (--tile->cell.energy != 0) {
+            } else if (--tile->cell.energy != 0) {
                 ++live_cell_count;
                 continue;
             }
@@ -1408,7 +1410,7 @@ static void advance_reproduction(void) {
                 tile->cell.age < 10 ||
                 tile->cell.energy < 10 ||
                 (EVOLUTION(EVOLUTION_POLYDIVISION) && tile->cell.energy < 20) ||
-                rng_rand() % 4 != 0
+                rng_rand() % (EVOLUTION(EVOLUTION_POLYDIVISION) ? 16 : 8) != 0
             ) {
                 continue;
             }
