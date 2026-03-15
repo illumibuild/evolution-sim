@@ -22,7 +22,7 @@
 
 #define TITLE "evolution-sim"
 #define VERSION "v0.2.0 alpha 3 preview"
-#define RELEASE_DATE "02/23/2026"
+#define RELEASE_DATE "03/15/2026"
 
 static uint32_t rng_state, rng_seed;
 
@@ -68,41 +68,50 @@ static struct nk_font_atlas *font_atlas;
 
 static struct nk_image icons[8];
 
-#define STILL_TILE    0
-#define STILL_CELL    1
-#define STILL_POINTER 3
+enum still_atlas_idx {
+    STILL_TILE,
+    STILL_CELL,
+    STILL_POINTER = 3
+};
+
+typedef uint8_t still_atlas_idx_t;
 
 static void select_still_frame(
     SDL_Rect *srcrect,
-    uint8_t atlas_idx
+    still_atlas_idx_t atlas_idx
 ) {
     srcrect->x = atlas_idx * TILE_WIDTH;
     srcrect->y = 0;
 }
 
-#define ANIMATION_TWITCH           1
-#define ANIMATION_DEATH            2
-#define ANIMATION_PULSE            3
-#define ANIMATION_BIRTH_UP         4
-#define ANIMATION_BIRTH_DOWN       5
-#define ANIMATION_BIRTH_LEFT       6
-#define ANIMATION_BIRTH_RIGHT      7
-#define ANIMATION_DIVISION_UP      8
-#define ANIMATION_DIVISION_DOWN    9
-#define ANIMATION_DIVISION_LEFT   10
-#define ANIMATION_DIVISION_RIGHT  11
-#define ANIMATION_MOVE_TO_UP      12
-#define ANIMATION_MOVE_TO_DOWN    13
-#define ANIMATION_MOVE_TO_LEFT    14
-#define ANIMATION_MOVE_TO_RIGHT   15
-#define ANIMATION_MOVE_FROM_UP    16
-#define ANIMATION_MOVE_FROM_DOWN  17
-#define ANIMATION_MOVE_FROM_LEFT  18
-#define ANIMATION_MOVE_FROM_RIGHT 19
+enum animation_atlas_id {
+    ANIMATION_TWITCH = 1,
+    ANIMATION_DEATH,
+    ANIMATION_PULSE,
+    ANIMATION_SYNTHESIZE,
+    ANIMATION_BIRTH_UP,
+    ANIMATION_BIRTH_DOWN,
+    ANIMATION_BIRTH_LEFT,
+    ANIMATION_BIRTH_RIGHT,
+    ANIMATION_DIVISION_UP,
+    ANIMATION_DIVISION_DOWN,
+    ANIMATION_DIVISION_LEFT,
+    ANIMATION_DIVISION_RIGHT,
+    ANIMATION_MOVE_TO_UP,
+    ANIMATION_MOVE_TO_DOWN,
+    ANIMATION_MOVE_TO_LEFT,
+    ANIMATION_MOVE_TO_RIGHT,
+    ANIMATION_MOVE_FROM_UP,
+    ANIMATION_MOVE_FROM_DOWN,
+    ANIMATION_MOVE_FROM_LEFT,
+    ANIMATION_MOVE_FROM_RIGHT
+};
+
+typedef uint8_t animation_atlas_id_t;
 
 static void select_animation_frame(
     SDL_Rect *srcrect,
-    uint8_t atlas_id,
+    animation_atlas_id_t atlas_id,
     uint32_t tick_diff,
     uint8_t speed
 ) {
