@@ -98,8 +98,7 @@ Both daughter cells also **inherit** the mother cell's **evolutions**.
 If certain conditions are met, a cell has a chance to **evolve to unlock a new ability/trait**.
 Every evolution has to be **a certain minimum age or above**, requires **a certain amount of energy** and also takes **a certain number of generations** to complete, during which the cell **cannot act** - it cannot harvest more energy and cannot divide.
 Once a cell enters evolution, **every generation** of the evolution, **a percentage** of the **total energy required for the evolution** is **subtracted** from the cell's available energy.
-If the living cost causes the cell to run out of energy, **it dies** as usual, so **every evolution is also a risk**.
-There are currently two evolutions - **motility** and **polydivision**.
+If the living cost causes the cell to run out of energy, **it dies** as usual, so **every evolution attempt carries a risk**.
 
 *Motility*
 
@@ -122,6 +121,17 @@ Only the daughter cell **on the tile of the original mother cell** retains the m
 - cost: 10 energy
 - timescale: 10 generations
 - probability: 25% (1 in 4)
+
+*Energosynthesis*
+
+When a cell has this evolution, it **generates 2 energy** if it has **at least 1 free neighboring tile** every generation.
+Additionally, if it has **at least 4 free neighboring tiles**, it generates an **extra 1 energy**, and if **all 8 neighboring tiles** are **free**, it generates **another extra 1 energy**, summing up to a total maximum of **4 energy** per generation, if all neighboring tiles are free.
+The energy is generated **as the living cost is being applied**.
+
+- eligibility: 200 age
+- cost: 50 energy
+- timescale: 25 generations
+- probability: 10% (1 in 10)
 
 #### Limits
 

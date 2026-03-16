@@ -22,7 +22,7 @@
 
 #define TITLE "evolution-sim"
 #define VERSION "v0.2.0 alpha 3 preview"
-#define RELEASE_DATE "03/15/2026"
+#define RELEASE_DATE "03/16/2026"
 
 static uint32_t rng_state, rng_seed;
 
@@ -1182,15 +1182,23 @@ static const struct evolution evolutions[] = {
         .cost = 10,
         .timescale = 10,
         .prob = 4
+    },
+    {
+        .name = "Energosynthesis",
+        .eligibility = 200,
+        .cost = 50,
+        .timescale = 25,
+        .prob = 10
     }
 };
 
 #define EVOLUTION_COUNT sizeof(evolutions) / sizeof(struct evolution)
 
-#define EVOLUTION_MOTILITY     evolutions[0]
-#define EVOLUTION_POLYDIVISION evolutions[1]
+#define EVOLUTION_MOTILITY        evolutions[0]
+#define EVOLUTION_POLYDIVISION    evolutions[1]
+#define EVOLUTION_ENERGOSYNTHESIS evolutions[2]
 
-#define EVOLUTION(evolution) (tile->cell.evolution_info & (1 << (&(evolution) - evolutions)))
+#define EVOLUTION(evolution_) (tile->cell.evolution_info & (1 << (&(evolution_) - evolutions)))
 
 typedef uint16_t evolution_info_t;
 
@@ -1204,6 +1212,7 @@ struct cell {
 enum ev {
     EVENT_DEATH,
     EVENT_PULSE,
+    EVENT_SYNTHESIZE,
     EVENT_MOVE_FROM_UP,
     EVENT_MOVE_FROM_DOWN,
     EVENT_MOVE_FROM_LEFT,
@@ -1224,10 +1233,13 @@ enum ev {
 
 typedef uint32_t ev_info_t;
 
-#define DOC_EVENT(ev) (tile->ev_info |= (1 << (ev)))
-#define EVENT(ev) (tile->ev_info & (1 << (ev)))
+#define DOC_EVENT(ev_) (tile->ev_info |= (1 << (ev_)))
+#define UNDOC_EVENT(ev_) (tile->ev_info &= ((ev_info_t)-1 ^ (1 << ev_)))
+#define EVENT(ev_) (tile->ev_info & (1 << (ev_)))
 #define ANY_EVENT() (tile->ev_info != 0)
+#define ANY_EVENT_EXCEPT(ev_) ((tile->ev_info & ~(1 << (ev_))) != 0)
 #define NO_EVENT() (tile->ev_info == 0)
+#define NO_EVENT_EXCEPT(ev_) ((tile->ev_info & ~(1 << (ev_))) == 0)
 
 struct tile {
     uint32_t energy;
@@ -1243,7 +1255,7 @@ struct world {
 
 static struct world world;
 
-#define TILE_AT(x, y) world.tilemap[(y) * (uint32_t)world.w + (x)]
+#define TILE_AT(x_, y_) world.tilemap[(y_) * (uint32_t)world.w + (x_)]
 
 #define GENERATION_TILE_INIT_ENERGY_CAP 75
 #define GENERATION_TILE_INIT_ENERGY_SUM (77 * 76 / 2)
@@ -1326,10 +1338,53 @@ static void advance_living(void) {
             struct tile *tile = &TILE_AT(x, y);
             if (tile->cell.energy == 0) {
                 continue;
-            } else if (--tile->cell.energy != 0) {
+            }
+            if (EVOLUTION(EVOLUTION_ENERGOSYNTHESIS)) {
+                uint8_t free_neighbor_count = 0;
+                if (x > 0) {
+                    if (TILE_AT(x - 1, y).cell.energy == 0) {
+                        ++free_neighbor_count;
+                    }
+                    if (y > 0 && TILE_AT(x - 1, y - 1).cell.energy == 0) {
+                        ++free_neighbor_count;
+                    }
+                    if (y < world.h - 1 && TILE_AT(x - 1, y + 1).cell.energy == 0) {
+                        ++free_neighbor_count;
+                    }
+                }
+                if (x < world.w - 1) {
+                    if (TILE_AT(x + 1, y).cell.energy == 0) {
+                        ++free_neighbor_count;
+                    }
+                    if (y > 0 && TILE_AT(x + 1, y - 1).cell.energy == 0) {
+                        ++free_neighbor_count;
+                    }
+                    if (y < world.h - 1 && TILE_AT(x + 1, y + 1).cell.energy == 0) {
+                        ++free_neighbor_count;
+                    }
+                }
+                if (y > 0 && TILE_AT(x, y - 1).cell.energy == 0) {
+                    ++free_neighbor_count;
+                }
+                if (y < world.h - 1 && TILE_AT(x, y + 1).cell.energy == 0) {
+                    ++free_neighbor_count;
+                }
+                if (free_neighbor_count >= 1) {
+                    DOC_EVENT(EVENT_SYNTHESIZE);
+                    tile->cell.energy += 2;
+                    if (free_neighbor_count >= 4) {
+                        ++tile->cell.energy;
+                        if (free_neighbor_count == 8) {
+                            ++tile->cell.energy;
+                        }
+                    }
+                }
+            }
+            if (--tile->cell.energy != 0) {
                 ++live_cell_count;
                 continue;
             }
+            UNDOC_EVENT(EVENT_SYNTHESIZE);
             tile->energy += tile->cell.age;
             tile->cell.age = 0;
             tile->cell.ongoing_evolution = NULL;
@@ -1365,7 +1420,7 @@ static void advance_instinct(void) {
     for (uint16_t x = 0; x < world.w; ++x) {
         for (uint16_t y = 0; y < world.h; ++y) {
             struct tile *tile = &TILE_AT(x, y);
-            if (ANY_EVENT()) {
+            if (ANY_EVENT_EXCEPT(EVENT_SYNTHESIZE)) {
                 continue;
             }
             if (
@@ -1415,7 +1470,7 @@ static void advance_reproduction(void) {
         for (uint16_t y = 0; y < world.h; ++y) {
             struct tile *tile = &TILE_AT(x, y);
             if (
-                ANY_EVENT() ||
+                ANY_EVENT_EXCEPT(EVENT_SYNTHESIZE) ||
                 tile->cell.age < 10 ||
                 tile->cell.energy < 10 ||
                 (EVOLUTION(EVOLUTION_POLYDIVISION) && tile->cell.energy < 20) ||
@@ -1493,7 +1548,7 @@ static void advance_evolution(void) {
     for (uint16_t x = 0; x < world.w; ++x) {
         for (uint16_t y = 0; y < world.h; ++y) {
             struct tile *tile = &TILE_AT(x, y);
-            if (ANY_EVENT()) {
+            if (ANY_EVENT_EXCEPT(EVENT_SYNTHESIZE)) {
                 continue;
             }
             for (evolution_info_t i = 0; i < EVOLUTION_COUNT; ++i) {
@@ -1991,6 +2046,17 @@ static bool ux_sim(void) {
                     select_animation_frame(
                         &srcrect,
                         ANIMATION_PULSE,
+                        curr_tick - animation_tick,
+                        speed
+                    );
+                    if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
+                        return false;
+                    }
+                }
+                if (EVENT(EVENT_SYNTHESIZE)) {
+                    select_animation_frame(
+                        &srcrect,
+                        ANIMATION_SYNTHESIZE,
                         curr_tick - animation_tick,
                         speed
                     );
