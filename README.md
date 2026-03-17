@@ -124,8 +124,9 @@ Only the daughter cell **on the tile of the original mother cell** retains the m
 
 *Energosynthesis*
 
-When a cell has this evolution, it **generates 2 energy** if it has **at least 1 free neighboring tile** every generation.
-Additionally, if it has **at least 4 free neighboring tiles**, it generates an **extra 1 energy**, and if **all 8 neighboring tiles** are **free**, it generates **another extra 1 energy**, summing up to a total maximum of **4 energy** per generation, if all neighboring tiles are free.
+When a cell has this evolution, it has a **50% (1 in 2) chance** to **generate 1 energy** every generation.
+If it has **at least 1 free neighboring cell**, it will **always** generate 1 energy.
+Additionally, if it has **at least 4 free neighboring tiles**, it generates an **extra 1 energy**, and if **all 8 neighboring tiles** are **free**, it generates **another extra 1 energy**, summing up to a total maximum of **3 energy** per generation, if all neighboring tiles are free.
 The energy is generated **as the living cost is being applied**.
 
 - eligibility: 200 age

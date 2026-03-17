@@ -22,7 +22,7 @@
 
 #define TITLE "evolution-sim"
 #define VERSION "v0.2.0 alpha 3 preview"
-#define RELEASE_DATE "03/16/2026"
+#define RELEASE_DATE "03/17/2026"
 
 static uint32_t rng_state, rng_seed;
 
@@ -1369,9 +1369,12 @@ static void advance_living(void) {
                 if (y < world.h - 1 && TILE_AT(x, y + 1).cell.energy == 0) {
                     ++free_neighbor_count;
                 }
-                if (free_neighbor_count >= 1) {
+                if (
+                    free_neighbor_count >= 1 ||
+                    rng_rand() % 2 == 0
+                ) {
                     DOC_EVENT(EVENT_SYNTHESIZE);
-                    tile->cell.energy += 2;
+                    ++tile->cell.energy;
                     if (free_neighbor_count >= 4) {
                         ++tile->cell.energy;
                         if (free_neighbor_count == 8) {
