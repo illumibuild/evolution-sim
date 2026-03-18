@@ -1383,10 +1383,13 @@ static void advance_living(void) {
             if (tile->cell.energy == 0) {
                 continue;
             }
-            if (--tile->cell.energy != 0) {
+            uint32_t living_cost = tile->cell.age / 50 + (tile->cell.age % 50 != 0);
+            if (tile->cell.energy > living_cost) {
+                tile->cell.energy -= living_cost;
                 ++live_cell_count;
                 continue;
             }
+            tile->cell.energy = 0;
             UNDOC_EVENT(EVENT_SYNTHESIZE);
             tile->energy += tile->cell.age;
             tile->cell.age = 0;

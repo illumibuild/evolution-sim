@@ -84,7 +84,7 @@ Of course, the actual harvested amount is limited by how much energy is **availa
 
 #### Living cost
 
-Every live cell's energy **decreases** by 1.
+Every live cell's energy **decreases** by $ceil(age / 50)$ every generation.
 
 #### Reproduction
 
