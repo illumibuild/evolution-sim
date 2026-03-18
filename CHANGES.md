@@ -141,3 +141,9 @@ All notable changes to this project will be documented here.
 #### Changed:
 
 - The living cost is now calculated as $ceil(age / 50)$ for every cell, making survival more demanding the older a cell is.
+
+### v0.2.0 alpha 4 - 03/18/2026
+
+#### Changed:
+
+- The living cost is now calculated as $ceil(age / 100)$ instead of $ceil(age / 50)$ to make the energosynthesis evolution realistically possible to achieve.
