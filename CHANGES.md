@@ -129,3 +129,15 @@ All notable changes to this project will be documented here.
 #### Changed:
 
 - Many small tweaks...
+
+### v0.2.0 alpha 3 - 03/18/2026
+
+#### Added:
+
+- Tiles' energy values now increase by 1 every 10 generations.
+
+- Added a new evolution - energosynthesis, the ability to generate energy.
+
+#### Changed:
+
+- The living cost is now calculated as $ceil(age / 50)$ for every cell, making survival more demanding the older a cell is.
