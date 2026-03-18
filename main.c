@@ -21,7 +21,7 @@
 #include <nuklear_sdl_renderer.h>
 
 #define TITLE "evolution-sim"
-#define VERSION "v0.2.0 alpha 3"
+#define VERSION "v0.2.0 alpha 4 preview"
 #define RELEASE_DATE "03/18/2026"
 
 static uint32_t rng_state, rng_seed;
@@ -1383,7 +1383,8 @@ static void advance_living(void) {
             if (tile->cell.energy == 0) {
                 continue;
             }
-            uint32_t living_cost = tile->cell.age / 50 + (tile->cell.age % 50 != 0);
+            const uint32_t living_cost =
+                tile->cell.age / 100 + (tile->cell.age % 100 == 0 ? 0 : 1);
             if (tile->cell.energy > living_cost) {
                 tile->cell.energy -= living_cost;
                 ++live_cell_count;
