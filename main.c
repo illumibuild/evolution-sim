@@ -22,7 +22,7 @@
 
 #define TITLE "evolution-sim"
 #define VERSION "v0.2.0 alpha 3 preview"
-#define RELEASE_DATE "03/17/2026"
+#define RELEASE_DATE "03/18/2026"
 
 static uint32_t rng_state, rng_seed;
 
@@ -1328,17 +1328,6 @@ static void advance_harvesting(void) {
                     tile->energy : harvested_energy;
             tile->energy -= actual_harvested_energy;
             tile->cell.energy += actual_harvested_energy;
-        }
-    }
-}
-
-static void advance_living(void) {
-    for (uint16_t x = 0; x < world.w; ++x) {
-        for (uint16_t y = 0; y < world.h; ++y) {
-            struct tile *tile = &TILE_AT(x, y);
-            if (tile->cell.energy == 0) {
-                continue;
-            }
             if (EVOLUTION(EVOLUTION_ENERGOSYNTHESIS)) {
                 uint8_t free_neighbor_count = 0;
                 if (x > 0) {
@@ -1382,6 +1371,17 @@ static void advance_living(void) {
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+static void advance_living(void) {
+    for (uint16_t x = 0; x < world.w; ++x) {
+        for (uint16_t y = 0; y < world.h; ++y) {
+            struct tile *tile = &TILE_AT(x, y);
+            if (tile->cell.energy == 0) {
+                continue;
             }
             if (--tile->cell.energy != 0) {
                 ++live_cell_count;
