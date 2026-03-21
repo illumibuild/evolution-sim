@@ -91,7 +91,7 @@ Every live cell's energy **decreases** by $ceil(age / 100)$ every generation.
 Every cell that has **at least 10 energy**, is **at least 10 generations old** and has **at least 1 free tile** out of its **4 adjacent tiles** has a **12.5% (1 in 8) chance** to divide itself into two cells, **splitting the mother cell's energy equally**, and **losing a unit of energy if the mother cell's energy is odd**.
 When a cell divides itself, one daughter cell **stays on the same tile** as the mother cell, while the other is born on **the most energy-rich free tile out of the 4 adjacent tiles** to the original mother cell.
 The daughter cell that stays on the same tile **inherits the mother cell's age**, while the other one **starts at 0 age**.
-Both daughter cells also **inherit** the mother cell's **evolutions**.
+The daughter cell that stays on the same tile **also inherits all the mother cell's evolutions**, while the other has a **50% (1 in 2) chance** for each mother cell's **evolution** to **inherit** it.
 
 #### Evolution
 
@@ -115,6 +115,7 @@ If there are **multiple** adjacent tiles with more energy, it moves to **the mos
 When a cell has this evolution, the **minimum energy** required for its **reproduction** is **doubled** to 20, and its reproduction **chance** is **halved** to **6.25% (1 in 16)**.
 However, instead of dividing itself into two cells, it divides itself into **as many cells as it can with the current provided space**, i.e. **the number of free adjacent tiles**, allowing for it to divide itself into **up to 5 cells** without **any additional energy costs** (aside from its already doubled requirement).
 The energy of the mother cell is **split equally** between all new cells, **losing** all energy that **can't** be equally split.
+The chance for an adjacent daughter cell to inherit an evolution is also reduced to **20% (1 in 5)**, but the daughter cell that stays on the same tile as the mother cell **still inherits all evolutions**.
 Only the daughter cell **on the tile of the original mother cell** retains the mother cell's age.
 
 - eligibility: 40 age

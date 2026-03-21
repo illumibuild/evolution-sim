@@ -21,8 +21,8 @@
 #include <nuklear_sdl_renderer.h>
 
 #define TITLE "evolution-sim"
-#define VERSION "v0.2.0 alpha 4"
-#define RELEASE_DATE "03/18/2026"
+#define VERSION "v0.2.0 alpha 5 preview"
+#define RELEASE_DATE "03/21/2026"
 
 static uint32_t rng_state, rng_seed;
 
@@ -1456,6 +1456,7 @@ static void advance_instinct(void) {
                     }
                 }
                 if (selected_tile != tile) {
+                    UNDOC_EVENT(EVENT_SYNTHESIZE);
                     DOC_EVENT(EVENT_MOVE_FROM_UP + direction);
                     selected_tile->cell.energy = --tile->cell.energy;
                     selected_tile->cell.age = tile->cell.age;
@@ -1515,7 +1516,11 @@ static void advance_reproduction(void) {
                         DOC_EVENT(EVENT_DIVISION_UP + i);
                         adjacent_tiles[i]->cell.energy = tile->cell.energy;
                         adjacent_tiles[i]->cell.age = 0;
-                        adjacent_tiles[i]->cell.evolution_info = tile->cell.evolution_info;
+                        for (uint8_t j = 0; j < EVOLUTION_COUNT; ++j) {
+                            if (EVOLUTION(evolutions[j]) && rng_rand() % 5 == 0) {
+                                adjacent_tiles[i]->cell.evolution_info |= 1 << j;
+                            }
+                        }
                         tile = adjacent_tiles[i];
                         DOC_EVENT(EVENT_BIRTH_UP + i);
                         tile = tile_bck;
@@ -1543,7 +1548,11 @@ static void advance_reproduction(void) {
                 tile->cell.energy /= 2;
                 selected_tile->cell.energy = tile->cell.energy;
                 selected_tile->cell.age = 0;
-                selected_tile->cell.evolution_info = tile->cell.evolution_info;
+                for (uint8_t i = 0; i < EVOLUTION_COUNT; ++i) {
+                    if (EVOLUTION(evolutions[i]) && rng_rand() % 5 == 0) {
+                        selected_tile->cell.evolution_info |= 1 << i;
+                    }
+                }
                 tile = selected_tile;
                 DOC_EVENT(EVENT_BIRTH_UP + direction);
             }
@@ -1558,9 +1567,9 @@ static void advance_evolution(void) {
             if (ANY_EVENT_EXCEPT(EVENT_SYNTHESIZE)) {
                 continue;
             }
-            for (evolution_info_t i = 0; i < EVOLUTION_COUNT; ++i) {
+            for (uint8_t i = 0; i < EVOLUTION_COUNT; ++i) {
                 if (
-                    !(tile->cell.evolution_info & (1 << i)) &&
+                    !EVOLUTION(evolutions[i]) &&
                     tile->cell.age >= evolutions[i].eligibility &&
                     tile->cell.energy >= evolutions[i].cost &&
                     rng_rand() % evolutions[i].prob == 0
