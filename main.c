@@ -22,7 +22,7 @@
 
 #define TITLE "evolution-sim"
 #define VERSION "v0.2.0 alpha 5 preview"
-#define RELEASE_DATE "03/21/2026"
+#define RELEASE_DATE "03/24/2026"
 
 static uint32_t rng_state, rng_seed;
 
@@ -1165,7 +1165,7 @@ static void end_gui(void) {
 struct evolution {
     const char *name;
     uint32_t eligibility, cost, timescale;
-    uint8_t prob;
+    uint16_t acq_prob, loss_prob;
 };
 
 static const struct evolution evolutions[] = {
@@ -1174,21 +1174,24 @@ static const struct evolution evolutions[] = {
         .eligibility = 20,
         .cost = 20,
         .timescale = 5,
-        .prob = 2
+        .acq_prob = 2,
+        .loss_prob = 20
     },
     {
         .name = "Polydivision",
         .eligibility = 40,
         .cost = 10,
         .timescale = 10,
-        .prob = 4
+        .acq_prob = 4,
+        .loss_prob = 20
     },
     {
         .name = "Energosynthesis",
         .eligibility = 200,
         .cost = 50,
         .timescale = 25,
-        .prob = 10
+        .acq_prob = 10,
+        .loss_prob = 3
     }
 };
 
@@ -1199,6 +1202,7 @@ static const struct evolution evolutions[] = {
 #define EVOLUTION_ENERGOSYNTHESIS evolutions[2]
 
 #define EVOLUTION(evolution_) (tile->cell.evolution_info & (1 << (&(evolution_) - evolutions)))
+#define USE_EVOLUTION(evolution_) (tile->cell.usage_info |= (1 << (&(evolution_) - evolutions)))
 
 typedef uint16_t evolution_info_t;
 
@@ -1206,7 +1210,7 @@ struct cell {
     uint32_t age, energy;
     const struct evolution *ongoing_evolution;
     uint32_t ongoing_evolution_timescale_progress;
-    evolution_info_t evolution_info;
+    evolution_info_t evolution_info, usage_info;
 };
 
 enum ev {
@@ -1303,6 +1307,7 @@ static void advance_age(void) {
         for (uint16_t y = 0; y < world.h; ++y) {
             struct tile *tile = &TILE_AT(x, y);
             tile->ev_info = 0;
+            tile->cell.usage_info = 0;
             if (world.gen % 10 == 0) {
                 ++tile->energy;
             }
@@ -1362,6 +1367,7 @@ static void advance_harvesting(void) {
                     free_neighbor_count >= 1 ||
                     rng_rand() % 2 == 0
                 ) {
+                    USE_EVOLUTION(EVOLUTION_ENERGOSYNTHESIS);
                     DOC_EVENT(EVENT_SYNTHESIZE);
                     ++tile->cell.energy;
                     if (free_neighbor_count >= 4) {
@@ -1465,6 +1471,7 @@ static void advance_instinct(void) {
                     tile->cell.age = 0;
                     tile->cell.evolution_info = 0;
                     tile = selected_tile;
+                    USE_EVOLUTION(EVOLUTION_MOTILITY);
                     DOC_EVENT(EVENT_MOVE_TO_UP + direction);
                     continue;
                 }
@@ -1513,6 +1520,7 @@ static void advance_reproduction(void) {
                 struct tile *tile_bck = tile;
                 for (uint8_t i = 0; i < 4; ++i) {
                     if (tile_selections[i]) {
+                        USE_EVOLUTION(EVOLUTION_POLYDIVISION);
                         DOC_EVENT(EVENT_DIVISION_UP + i);
                         adjacent_tiles[i]->cell.energy = tile->cell.energy;
                         adjacent_tiles[i]->cell.age = 0;
@@ -1564,7 +1572,21 @@ static void advance_evolution(void) {
     for (uint16_t x = 0; x < world.w; ++x) {
         for (uint16_t y = 0; y < world.h; ++y) {
             struct tile *tile = &TILE_AT(x, y);
-            if (ANY_EVENT_EXCEPT(EVENT_SYNTHESIZE)) {
+            if (tile->cell.ongoing_evolution) {
+                continue;
+            }
+            bool regressive_evolution_happened = false;
+            for (uint8_t i = 0; i < EVOLUTION_COUNT; ++i) {
+                if (
+                    EVOLUTION(evolutions[i]) &&
+                    !(tile->cell.usage_info & (1 << i)) &&
+                    rng_rand() % evolutions[i].loss_prob == 0
+                ) {
+                    tile->cell.evolution_info ^= (1 << i);
+                    regressive_evolution_happened = true;
+                }
+            }
+            if (regressive_evolution_happened || ANY_EVENT_EXCEPT(EVENT_SYNTHESIZE)) {
                 continue;
             }
             for (uint8_t i = 0; i < EVOLUTION_COUNT; ++i) {
@@ -1572,7 +1594,7 @@ static void advance_evolution(void) {
                     !EVOLUTION(evolutions[i]) &&
                     tile->cell.age >= evolutions[i].eligibility &&
                     tile->cell.energy >= evolutions[i].cost &&
-                    rng_rand() % evolutions[i].prob == 0
+                    rng_rand() % evolutions[i].acq_prob == 0
                 ) {
                     tile->cell.ongoing_evolution = &evolutions[i];
                     break;

@@ -92,6 +92,7 @@ Every cell that has **at least 10 energy**, is **at least 10 generations old** a
 When a cell divides itself, one daughter cell **stays on the same tile** as the mother cell, while the other is born on **the most energy-rich free tile out of the 4 adjacent tiles** to the original mother cell.
 The daughter cell that stays on the same tile **inherits the mother cell's age**, while the other one **starts at 0 age**.
 The daughter cell that stays on the same tile **also inherits all the mother cell's evolutions**, while the other has a **50% (1 in 2) chance** for each mother cell's **evolution** to **inherit** it.
+Every evolution also has a chance to be lost if unused in a generation, triggering **regressive evolution**.
 
 #### Evolution
 
@@ -108,7 +109,8 @@ If there are **multiple** adjacent tiles with more energy, it moves to **the mos
 - eligibility: 20 age
 - cost: 20 energy
 - timescale: 5 generations
-- probability: 50% (1 in 2)
+- acquistion probability: 50% (1 in 2)
+- loss probability: 5% (1 in 20)
 
 *Polydivision*
 
@@ -121,7 +123,8 @@ Only the daughter cell **on the tile of the original mother cell** retains the m
 - eligibility: 40 age
 - cost: 10 energy
 - timescale: 10 generations
-- probability: 25% (1 in 4)
+- acquistion probability: 25% (1 in 4)
+- loss probability: 5% (1 in 20)
 
 *Energosynthesis*
 
@@ -133,7 +136,8 @@ The energy is generated **before the living cost is applied**.
 - eligibility: 200 age
 - cost: 50 energy
 - timescale: 25 generations
-- probability: 10% (1 in 10)
+- acquistion probability: 10% (1 in 10)
+- loss probability: 33.33% (1 in 3)
 
 #### Limits
 
