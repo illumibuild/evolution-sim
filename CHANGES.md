@@ -147,3 +147,17 @@ All notable changes to this project will be documented here.
 #### Changed:
 
 - The living cost is now calculated as $ceil(age / 100)$ instead of $ceil(age / 50)$ to make the energosynthesis evolution realistically possible to achieve.
+
+### v0.2.0 alpha 5 - 03/25/2026
+
+#### Added:
+
+- Added regressive evolution, so that a cell has a chance to lose an evolution every generation it doesn't utilize that evolution.
+
+#### Changed:
+
+- Made it so that, during division, daughter cells only have a chance to inherit evolutions from the mother cell.
+
+#### Fixed:
+
+- Fixed a visual bug that would occur when a cell both synthesizes energy and moves on the same tick.
