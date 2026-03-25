@@ -91,8 +91,7 @@ Every live cell's energy **decreases** by $ceil(age / 100)$ every generation.
 Every cell that has **at least 10 energy**, is **at least 10 generations old** and has **at least 1 free tile** out of its **4 adjacent tiles** has a **12.5% (1 in 8) chance** to divide itself into two cells, **splitting the mother cell's energy equally**, and **losing a unit of energy if the mother cell's energy is odd**.
 When a cell divides itself, one daughter cell **stays on the same tile** as the mother cell, while the other is born on **the most energy-rich free tile out of the 4 adjacent tiles** to the original mother cell.
 The daughter cell that stays on the same tile **inherits the mother cell's age**, while the other one **starts at 0 age**.
-The daughter cell that stays on the same tile **also inherits all the mother cell's evolutions**, while the other has a **50% (1 in 2) chance** for each mother cell's **evolution** to **inherit** it.
-Every evolution also has a chance to be lost if unused in a generation, triggering **regressive evolution**.
+Both cells have a **50% (1 in 2) chance each** for **each evolution** from the **mother cell** to **inherit** it.
 
 #### Evolution
 
@@ -100,6 +99,7 @@ If certain conditions are met, a cell has a chance to **evolve to unlock a new a
 Every evolution has to be **a certain minimum age or above**, requires **a certain amount of energy** and also takes **a certain number of generations** to complete, during which the cell **cannot act** - it cannot harvest more energy and cannot divide.
 Once a cell enters evolution, **every generation** of the evolution, **a percentage** of the **total energy required for the evolution** is **subtracted** from the cell's available energy.
 If the living cost causes the cell to run out of energy, **it dies** as usual, so **every evolution attempt carries a risk**.
+Every evolution also has a chance to be lost if unused in a generation, triggering **regressive evolution**.
 
 *Motility*
 
@@ -110,21 +110,20 @@ If there are **multiple** adjacent tiles with more energy, it moves to **the mos
 - cost: 20 energy
 - timescale: 5 generations
 - acquistion probability: 50% (1 in 2)
-- loss probability: 5% (1 in 20)
+- loss probability: 4% (1 in 25)
 
 *Polydivision*
 
 When a cell has this evolution, the **minimum energy** required for its **reproduction** is **doubled** to 20, and its reproduction **chance** is **halved** to **6.25% (1 in 16)**.
 However, instead of dividing itself into two cells, it divides itself into **as many cells as it can with the current provided space**, i.e. **the number of free adjacent tiles**, allowing for it to divide itself into **up to 5 cells** without **any additional energy costs** (aside from its already doubled requirement).
 The energy of the mother cell is **split equally** between all new cells, **losing** all energy that **can't** be equally split.
-The chance for an adjacent daughter cell to inherit an evolution is also reduced to **20% (1 in 5)**, but the daughter cell that stays on the same tile as the mother cell **still inherits all evolutions**.
 Only the daughter cell **on the tile of the original mother cell** retains the mother cell's age.
 
 - eligibility: 40 age
 - cost: 10 energy
 - timescale: 10 generations
 - acquistion probability: 25% (1 in 4)
-- loss probability: 5% (1 in 20)
+- loss probability: 2.5% (1 in 40)
 
 *Energosynthesis*
 
@@ -133,11 +132,11 @@ If it has **at least 1 free neighboring cell**, it will **always** generate 1 en
 Additionally, if it has **at least 4 free neighboring tiles**, it generates an **extra 1 energy**, and if **all 8 neighboring tiles** are **free**, it generates **another extra 1 energy**, summing up to a total maximum of **3 energy** per generation, if all neighboring tiles are free.
 The energy is generated **before the living cost is applied**.
 
-- eligibility: 200 age
-- cost: 50 energy
-- timescale: 25 generations
+- eligibility: 100 age
+- cost: 30 energy
+- timescale: 15 generations
 - acquistion probability: 10% (1 in 10)
-- loss probability: 33.33% (1 in 3)
+- loss probability: 12.5% (1 in 8)
 
 #### Limits
 

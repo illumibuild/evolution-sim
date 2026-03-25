@@ -22,7 +22,7 @@
 
 #define TITLE "evolution-sim"
 #define VERSION "v0.2.0 alpha 5 preview"
-#define RELEASE_DATE "03/24/2026"
+#define RELEASE_DATE "03/25/2026"
 
 static uint32_t rng_state, rng_seed;
 
@@ -1175,7 +1175,7 @@ static const struct evolution evolutions[] = {
         .cost = 20,
         .timescale = 5,
         .acq_prob = 2,
-        .loss_prob = 20
+        .loss_prob = 25
     },
     {
         .name = "Polydivision",
@@ -1183,15 +1183,15 @@ static const struct evolution evolutions[] = {
         .cost = 10,
         .timescale = 10,
         .acq_prob = 4,
-        .loss_prob = 20
+        .loss_prob = 40
     },
     {
         .name = "Energosynthesis",
-        .eligibility = 200,
-        .cost = 50,
-        .timescale = 25,
+        .eligibility = 100,
+        .cost = 30,
+        .timescale = 15,
         .acq_prob = 10,
-        .loss_prob = 3
+        .loss_prob = 8
     }
 };
 
@@ -1525,13 +1525,24 @@ static void advance_reproduction(void) {
                         adjacent_tiles[i]->cell.energy = tile->cell.energy;
                         adjacent_tiles[i]->cell.age = 0;
                         for (uint8_t j = 0; j < EVOLUTION_COUNT; ++j) {
-                            if (EVOLUTION(evolutions[j]) && rng_rand() % 5 == 0) {
+                            if (
+                                EVOLUTION(evolutions[j]) &&
+                                rng_rand() % 2 == 0
+                            ) {
                                 adjacent_tiles[i]->cell.evolution_info |= 1 << j;
                             }
                         }
                         tile = adjacent_tiles[i];
                         DOC_EVENT(EVENT_BIRTH_UP + i);
                         tile = tile_bck;
+                    }
+                }
+                for (uint8_t i = 0; i < EVOLUTION_COUNT; ++i) {
+                    if (
+                        EVOLUTION(evolutions[i]) &&
+                        rng_rand() % 2 != 0
+                    ) {
+                        tile->cell.evolution_info ^= 1 << i;
                     }
                 }
                 continue;
@@ -1557,8 +1568,13 @@ static void advance_reproduction(void) {
                 selected_tile->cell.energy = tile->cell.energy;
                 selected_tile->cell.age = 0;
                 for (uint8_t i = 0; i < EVOLUTION_COUNT; ++i) {
-                    if (EVOLUTION(evolutions[i]) && rng_rand() % 5 == 0) {
-                        selected_tile->cell.evolution_info |= 1 << i;
+                    if (EVOLUTION(evolutions[i])) {
+                        if (rng_rand() % 2 == 0) {
+                            selected_tile->cell.evolution_info |= 1 << i;
+                        }
+                        if (rng_rand() % 2 != 0) {
+                            tile->cell.evolution_info ^= 1 << i;
+                        }
                     }
                 }
                 tile = selected_tile;
