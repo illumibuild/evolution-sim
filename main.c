@@ -22,15 +22,15 @@
 
 #define TITLE "evolution-sim"
 #define VERSION "v0.2.0 beta 1 preview"
-#define RELEASE_DATE "03/27/2026"
+#define RELEASE_DATE "03/28/2026"
 
-static uint32_t rng_state, rng_seed;
+uint32_t rng_state, rng_seed;
 
-static void rng_srand(uint32_t seed) {
+void rng_srand(uint32_t seed) {
     rng_state = rng_seed = seed == 0 ? (uint32_t)time(NULL) : seed;
 }
 
-static uint32_t rng_rand(void) {
+uint32_t rng_rand(void) {
     uint32_t rng_output = (rng_state += 0x9E3779B9);
     rng_output = (rng_output ^ (rng_output >> 16)) * 0x85EBCA6B;
     rng_output = (rng_output ^ (rng_output >> 13)) * 0xC2B2AE35;
@@ -54,19 +54,19 @@ static uint32_t rng_rand(void) {
 
 #define FONT_SIZE 24
 
-static SDL_Window *window;
+SDL_Window *window;
 
-static SDL_Renderer *renderer;
+SDL_Renderer *renderer;
 
-static struct nk_context *nk_ctx;
+struct nk_context *nk_ctx;
 
-static SDL_Texture *texture;
+SDL_Texture *texture;
 
-static struct nk_font *font;
+struct nk_font *font;
 
-static struct nk_font_atlas *font_atlas;
+struct nk_font_atlas *font_atlas;
 
-static struct nk_image icons[8];
+struct nk_image icons[8];
 
 enum still_atlas_idx {
     STILL_TILE,
@@ -76,7 +76,7 @@ enum still_atlas_idx {
 
 typedef uint8_t still_atlas_idx_t;
 
-static void select_still_frame(
+void select_still_frame(
     SDL_Rect *srcrect,
     still_atlas_idx_t atlas_idx
 ) {
@@ -109,7 +109,7 @@ enum animation_atlas_id {
 
 typedef uint8_t animation_atlas_id_t;
 
-static void select_animation_frame(
+void select_animation_frame(
     SDL_Rect *srcrect,
     animation_atlas_id_t atlas_id,
     uint32_t tick_diff,
@@ -127,9 +127,9 @@ static void select_animation_frame(
 #define COLOR_BORDER         nk_rgba(0xC8, 0x00, 0x5A, 0xFF)
 #define COLOR_CUSTOM_QUALITY nk_rgba(0x39, 0xFF, 0x14, 0xFF)
 
-static struct nk_style_button style_button_disabled;
+struct nk_style_button style_button_disabled;
 
-static void nk_skin(void) {
+void nk_skin(void) {
     nk_ctx->style.window.fixed_background.data.color = nk_rgba_u32(0);
     nk_ctx->style.window.padding = nk_vec2(0, 0);
     nk_ctx->style.text.color = COLOR_FG;
@@ -164,7 +164,7 @@ static void nk_skin(void) {
 #define TEXTURE_PATH "texture_atlas.png"
 #define FONT_PATH    "Ubuntu-R.ttf"
 
-static bool init(void) {
+bool init(void) {
     if (
         SDL_Init(SDL_INIT_VIDEO) != 0 ||
         !(IMG_Init(IMG_INIT_PNG) & IMG_INIT_PNG)
@@ -236,7 +236,7 @@ static bool init(void) {
     return true;
 }
 
-static void quit(void) {
+void quit(void) {
     nk_font_atlas_cleanup(font_atlas);
     SDL_DestroyTexture(texture);
     nk_sdl_shutdown();
@@ -246,7 +246,7 @@ static void quit(void) {
     SDL_Quit();
 }
 
-static int32_t window_w, window_h;
+int32_t window_w, window_h;
 
 enum ux_state {
     UX_ANY,
@@ -257,7 +257,7 @@ enum ux_state {
 
 typedef uint8_t ux_state_t;
 
-static ux_state_t ux_state = UX_CREATION;
+ux_state_t ux_state = UX_CREATION;
 
 enum gui_element_type {
     GUI_LABEL,
@@ -278,7 +278,7 @@ struct gui_label_element {
     struct nk_rect (*const pos)();
 };
 
-static struct nk_rect label_world_size_pos(void) {
+struct nk_rect label_world_size_pos(void) {
     return nk_rect(
         window_w / 2 - 150,
         window_h / 2 - 72,
@@ -287,7 +287,7 @@ static struct nk_rect label_world_size_pos(void) {
     );
 }
 
-static struct nk_rect label_seed_pos(void) {
+struct nk_rect label_seed_pos(void) {
     return nk_rect(
         window_w / 2 - 150,
         window_h / 2 + 8,
@@ -296,7 +296,7 @@ static struct nk_rect label_seed_pos(void) {
     );
 }
 
-static struct nk_rect label_mul_pos(void) {
+struct nk_rect label_mul_pos(void) {
     return nk_rect(
         window_w / 2 - 11,
         window_h / 2 - 32,
@@ -305,7 +305,7 @@ static struct nk_rect label_mul_pos(void) {
     );
 }
 
-static struct nk_rect label_version_pos(void) {
+struct nk_rect label_version_pos(void) {
     return nk_rect(
         10,
         window_h - 58,
@@ -314,7 +314,7 @@ static struct nk_rect label_version_pos(void) {
     );
 }
 
-static struct nk_rect label_release_date_pos(void) {
+struct nk_rect label_release_date_pos(void) {
     return nk_rect(
         10,
         window_h - 34,
@@ -332,7 +332,7 @@ struct gui_text_element {
     struct nk_rect (*const pos)();
 };
 
-static struct nk_rect text_error_pos(void) {
+struct nk_rect text_error_pos(void) {
     return nk_rect(
         window_w / 2 - 300,
         window_h / 2 + 200,
@@ -341,7 +341,7 @@ static struct nk_rect text_error_pos(void) {
     );
 }
 
-static struct nk_rect text_generating_pos(void) {
+struct nk_rect text_generating_pos(void) {
     return nk_rect(
         10,
         window_h / 2 - 12,
@@ -350,7 +350,7 @@ static struct nk_rect text_generating_pos(void) {
     );
 }
 
-static struct nk_rect text_zoom_pos(void) {
+struct nk_rect text_zoom_pos(void) {
     return nk_rect(
         260,
         20,
@@ -359,7 +359,7 @@ static struct nk_rect text_zoom_pos(void) {
     );
 }
 
-static struct nk_rect text_speed_pos(void) {
+struct nk_rect text_speed_pos(void) {
     return nk_rect(
         500,
         20,
@@ -368,7 +368,7 @@ static struct nk_rect text_speed_pos(void) {
     );
 }
 
-static struct nk_rect text_report_pointer_pos_pos(void) {
+struct nk_rect text_report_pointer_pos_pos(void) {
     return nk_rect(
         10,
         70,
@@ -377,7 +377,7 @@ static struct nk_rect text_report_pointer_pos_pos(void) {
     );
 }
 
-static struct nk_rect text_report_curr_tile_energy_pos(void) {
+struct nk_rect text_report_curr_tile_energy_pos(void) {
     return nk_rect(
         10,
         104,
@@ -386,7 +386,7 @@ static struct nk_rect text_report_curr_tile_energy_pos(void) {
     );
 }
 
-static struct nk_rect text_report_curr_cell_age_pos(void) {
+struct nk_rect text_report_curr_cell_age_pos(void) {
     return nk_rect(
         10,
         138,
@@ -395,7 +395,7 @@ static struct nk_rect text_report_curr_cell_age_pos(void) {
     );
 }
 
-static struct nk_rect text_report_curr_cell_energy_pos(void) {
+struct nk_rect text_report_curr_cell_energy_pos(void) {
     return nk_rect(
         10,
         172,
@@ -404,7 +404,7 @@ static struct nk_rect text_report_curr_cell_energy_pos(void) {
     );
 }
 
-static struct nk_rect text_report_world_size_pos(void) {
+struct nk_rect text_report_world_size_pos(void) {
     return nk_rect(
         10,
         window_h - 106,
@@ -413,7 +413,7 @@ static struct nk_rect text_report_world_size_pos(void) {
     );
 }
 
-static struct nk_rect text_report_seed_pos(void) {
+struct nk_rect text_report_seed_pos(void) {
     return nk_rect(
         10,
         window_h - 82,
@@ -422,7 +422,7 @@ static struct nk_rect text_report_seed_pos(void) {
     );
 }
 
-static struct nk_rect text_report_gen_pos(void) {
+struct nk_rect text_report_gen_pos(void) {
     return nk_rect(
         10,
         window_h - 58,
@@ -431,7 +431,7 @@ static struct nk_rect text_report_gen_pos(void) {
     );
 }
 
-static struct nk_rect text_report_live_cell_count_pos(void) {
+struct nk_rect text_report_live_cell_count_pos(void) {
     return nk_rect(
         10,
         window_h - 34,
@@ -449,7 +449,7 @@ struct gui_input_element {
     struct nk_rect (*const pos)();
 };
 
-static struct nk_rect input_world_width_pos(void) {
+struct nk_rect input_world_width_pos(void) {
     return nk_rect(
         window_w / 2 - 150,
         window_h / 2 - 40,
@@ -458,7 +458,7 @@ static struct nk_rect input_world_width_pos(void) {
     );
 }
 
-static struct nk_rect input_world_height_pos(void) {
+struct nk_rect input_world_height_pos(void) {
     return nk_rect(
         window_w / 2 + 16,
         window_h / 2 - 40,
@@ -467,7 +467,7 @@ static struct nk_rect input_world_height_pos(void) {
     );
 }
 
-static struct nk_rect input_seed_pos(void) {
+struct nk_rect input_seed_pos(void) {
     return nk_rect(
         window_w / 2 - 150,
         window_h / 2 + 40,
@@ -484,7 +484,7 @@ struct gui_button_element {
     struct nk_rect (*const pos)();
 };
 
-static struct nk_rect button_generate_pos(void) {
+struct nk_rect button_generate_pos(void) {
     return nk_rect(
         window_w / 2 - 100,
         window_h / 2 + 120,
@@ -501,7 +501,7 @@ struct gui_icon_button_element {
     struct nk_rect (*const pos)();
 };
 
-static struct nk_rect icon_button_start_pos(void) {
+struct nk_rect icon_button_start_pos(void) {
     return nk_rect(
         10,
         10,
@@ -510,7 +510,7 @@ static struct nk_rect icon_button_start_pos(void) {
     );
 }
 
-static struct nk_rect icon_button_stop_pos(void) {
+struct nk_rect icon_button_stop_pos(void) {
     return nk_rect(
         60,
         10,
@@ -519,7 +519,7 @@ static struct nk_rect icon_button_stop_pos(void) {
     );
 }
 
-static struct nk_rect icon_button_step_pos(void) {
+struct nk_rect icon_button_step_pos(void) {
     return nk_rect(
         110,
         10,
@@ -528,7 +528,7 @@ static struct nk_rect icon_button_step_pos(void) {
     );
 }
 
-static struct nk_rect icon_button_zoom_in_pos(void) {
+struct nk_rect icon_button_zoom_in_pos(void) {
     return nk_rect(
         210,
         10,
@@ -537,7 +537,7 @@ static struct nk_rect icon_button_zoom_in_pos(void) {
     );
 }
 
-static struct nk_rect icon_button_zoom_out_pos(void) {
+struct nk_rect icon_button_zoom_out_pos(void) {
     return nk_rect(
         350,
         10,
@@ -546,7 +546,7 @@ static struct nk_rect icon_button_zoom_out_pos(void) {
     );
 }
 
-static struct nk_rect icon_button_speed_up_pos(void) {
+struct nk_rect icon_button_speed_up_pos(void) {
     return nk_rect(
         450,
         10,
@@ -555,7 +555,7 @@ static struct nk_rect icon_button_speed_up_pos(void) {
     );
 }
 
-static struct nk_rect icon_button_slow_down_pos(void) {
+struct nk_rect icon_button_slow_down_pos(void) {
     return nk_rect(
         550,
         10,
@@ -564,7 +564,7 @@ static struct nk_rect icon_button_slow_down_pos(void) {
     );
 }
 
-static struct nk_rect icon_button_quit_pos(void) {
+struct nk_rect icon_button_quit_pos(void) {
     return nk_rect(
         window_w - 50,
         10,
@@ -580,7 +580,7 @@ struct gui_panel_element {
     struct nk_rect (*const pos)();
 };
 
-static struct nk_rect panel_controls_pos(void) {
+struct nk_rect panel_controls_pos(void) {
     return nk_rect(
         -2,
         -2,
@@ -599,7 +599,7 @@ union gui_element {
     struct gui_panel_element panel_element;
 };
 
-static union gui_element gui_elements[] = {
+union gui_element gui_elements[] = {
     {
         .label_element = {
             .type = GUI_LABEL,
@@ -928,7 +928,7 @@ static union gui_element gui_elements[] = {
 #define GUI_LABEL_VERSION                gui_elements[28].text_element
 #define GUI_LABEL_RELEASE_DATE           gui_elements[29].text_element
 
-static bool start_gui(void) {
+bool start_gui(void) {
     for (uint8_t i = 0; i < GUI_ELEMENT_COUNT; ++i) {
         switch (gui_elements[i].type) {
         case GUI_TEXT:
@@ -957,7 +957,7 @@ static bool start_gui(void) {
     return true;
 }
 
-static void do_gui(void) {
+void do_gui(void) {
     if (
         nk_begin(
             nk_ctx,
@@ -1140,7 +1140,7 @@ static void do_gui(void) {
     nk_end(nk_ctx);
 }
 
-static void end_gui(void) {
+void end_gui(void) {
     for (uint8_t i = 0; i < GUI_ELEMENT_COUNT; ++i) {
         switch (gui_elements[i].type) {
         case GUI_TEXT:
@@ -1168,7 +1168,7 @@ struct evolution {
     uint16_t acq_prob, loss_prob;
 };
 
-static const struct evolution evolutions[] = {
+const struct evolution evolutions[] = {
     {
         .name = "Motility",
         .eligibility = 20,
@@ -1257,7 +1257,7 @@ struct world {
     struct tile *tilemap;
 };
 
-static struct world world;
+struct world world;
 
 #define TILE_AT(x_, y_) world.tilemap[(y_) * (uint32_t)world.w + (x_)]
 
@@ -1266,9 +1266,9 @@ static struct world world;
 
 #define MAX_GENERATION_OPS_PER_TICK 1000000
 
-static uint32_t tiles_generated;
+uint32_t tiles_generated;
 
-static bool generate(void) {
+bool generate(void) {
     static uint16_t x = 0, y = 0;
     uint32_t operations = 0;
     if (x == 0 && y == 0) {
@@ -1300,9 +1300,9 @@ static bool generate(void) {
     return true;
 }
 
-static uint32_t live_cell_count;
+uint32_t live_cell_count;
 
-static void advance_age(void) {
+void advance_age(void) {
     for (uint16_t x = 0; x < world.w; ++x) {
         for (uint16_t y = 0; y < world.h; ++y) {
             struct tile *tile = &TILE_AT(x, y);
@@ -1318,7 +1318,7 @@ static void advance_age(void) {
     }
 }
 
-static void advance_harvesting(void) {
+void advance_harvesting(void) {
     for (uint16_t x = 0; x < world.w; ++x) {
         for (uint16_t y = 0; y < world.h; ++y) {
             struct tile *tile = &TILE_AT(x, y);
@@ -1382,7 +1382,7 @@ static void advance_harvesting(void) {
     }
 }
 
-static void advance_living(void) {
+void advance_living(void) {
     for (uint16_t x = 0; x < world.w; ++x) {
         for (uint16_t y = 0; y < world.h; ++y) {
             struct tile *tile = &TILE_AT(x, y);
@@ -1408,7 +1408,7 @@ static void advance_living(void) {
     }
 }
 
-static void advance_pulsing(void) {
+void advance_pulsing(void) {
     for (uint16_t x = 0; x < world.w; ++x) {
         for (uint16_t y = 0; y < world.h; ++y) {
             struct tile *tile = &TILE_AT(x, y);
@@ -1429,7 +1429,7 @@ static void advance_pulsing(void) {
     }
 }
 
-static void advance_instinct(void) {
+void advance_instinct(void) {
     for (uint16_t x = 0; x < world.w; ++x) {
         for (uint16_t y = 0; y < world.h; ++y) {
             struct tile *tile = &TILE_AT(x, y);
@@ -1480,7 +1480,7 @@ static void advance_instinct(void) {
     }
 }
 
-static void advance_reproduction(void) {
+void advance_reproduction(void) {
     for (uint16_t x = 0; x < world.w; ++x) {
         for (uint16_t y = 0; y < world.h; ++y) {
             struct tile *tile = &TILE_AT(x, y);
@@ -1584,7 +1584,7 @@ static void advance_reproduction(void) {
     }
 }
 
-static void advance_evolution(void) {
+void advance_evolution(void) {
     for (uint16_t x = 0; x < world.w; ++x) {
         for (uint16_t y = 0; y < world.h; ++y) {
             struct tile *tile = &TILE_AT(x, y);
@@ -1620,7 +1620,7 @@ static void advance_evolution(void) {
     }
 }
 
-static void advance(void) {
+void advance(void) {
     ++world.gen;
     live_cell_count = 0;
     advance_age();
@@ -1633,11 +1633,11 @@ static void advance(void) {
     return;
 }
 
-static bool is_running = true;
+bool is_running = true;
 
-static int32_t scroll_x, scroll_y;
+int32_t scroll_x, scroll_y;
 
-static bool ux_creation(void) {
+bool ux_creation(void) {
     uintmax_t potential_w = UINTMAX_MAX, potential_h = UINTMAX_MAX;
     if (GUI_INPUT_WORLD_WIDTH.buffer[0] != '\0' && GUI_INPUT_WORLD_HEIGHT.buffer[0] != '\0') {
         errno = 0;
@@ -1691,7 +1691,7 @@ static bool ux_creation(void) {
     return true;
 }
 
-static bool ux_generation(void) {
+bool ux_generation(void) {
     bool done = generate();
     snprintf(
         GUI_TEXT_GENERATING.buffer,
@@ -1723,7 +1723,7 @@ static bool ux_generation(void) {
 #define DEFAULT_SPEED 2
 #define MAX_SPEED 4
 
-static bool ux_sim(void) {
+bool ux_sim(void) {
     static bool is_ready = false;
     static uint32_t last_gen = UINT32_MAX;
     static uint8_t zoom = DEFAULT_ZOOM, speed = DEFAULT_SPEED;
@@ -2319,7 +2319,7 @@ static bool ux_sim(void) {
     return true;
 }
 
-static bool tick(void) {
+bool tick(void) {
     SDL_GetWindowSize(window, &window_w, &window_h);
     scroll_x = 0;
     scroll_y = 0;
