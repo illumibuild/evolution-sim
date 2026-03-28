@@ -1633,8 +1633,6 @@ void advance(void) {
     return;
 }
 
-bool is_running = true;
-
 int32_t scroll_x, scroll_y;
 
 bool ux_creation(void) {
@@ -2318,6 +2316,8 @@ bool ux_sim(void) {
     }
     return true;
 }
+
+bool is_running = true;
 
 bool tick(void) {
     SDL_GetWindowSize(window, &window_w, &window_h);
