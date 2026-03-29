@@ -1248,9 +1248,17 @@ enum ev {
     EVENT_SYNTHESIZE_MOVE_FROM_UP,
     EVENT_SYNTHESIZE_MOVE_FROM_DOWN,
     EVENT_SYNTHESIZE_MOVE_FROM_LEFT,
-    EVENT_SYNTHESIZE_MOVE_FROM_RIGHT,
-    EVENTS_TOTAL
+    EVENT_SYNTHESIZE_MOVE_FROM_RIGHT
 };
+
+typedef uint8_t ev_t;
+
+#define FIRST_EVENT  EVENT_DEATH
+#define LAST_EVENT   EVENT_SYNTHESIZE_MOVE_FROM_RIGHT
+
+#define FIRST_EVENT_ANIMATION ANIMATION_DEATH
+
+#define EVENT_ANIMATION_OFFSET FIRST_EVENT_ANIMATION - FIRST_EVENT
 
 typedef uint32_t ev_info_t;
 
@@ -2109,11 +2117,11 @@ bool ux_sim(void) {
                         return false;
                     }
                 }
-                for (enum ev ev = 0; ev < EVENTS_TOTAL; ++ev) {
+                for (ev_t ev = FIRST_EVENT; ev <= LAST_EVENT; ++ev) {
                     if (EVENT(ev)) {
                         select_animation_frame(
                             &srcrect,
-                            ev + 2,
+                            ev + EVENT_ANIMATION_OFFSET,
                             curr_tick - animation_tick,
                             speed
                         );
