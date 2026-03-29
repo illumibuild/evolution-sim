@@ -22,7 +22,7 @@
 
 #define TITLE "evolution-sim"
 #define VERSION "v0.2.0 beta 1 preview"
-#define RELEASE_DATE "03/28/2026"
+#define RELEASE_DATE "03/29/2026"
 
 uint32_t rng_state, rng_seed;
 
@@ -104,7 +104,15 @@ enum animation_atlas_id {
     ANIMATION_MOVE_FROM_UP,
     ANIMATION_MOVE_FROM_DOWN,
     ANIMATION_MOVE_FROM_LEFT,
-    ANIMATION_MOVE_FROM_RIGHT
+    ANIMATION_MOVE_FROM_RIGHT,
+    ANIMATION_SYNTHESIZE_MOVE_TO_UP,
+    ANIMATION_SYNTHESIZE_MOVE_TO_DOWN,
+    ANIMATION_SYNTHESIZE_MOVE_TO_LEFT,
+    ANIMATION_SYNTHESIZE_MOVE_TO_RIGHT,
+    ANIMATION_SYNTHESIZE_MOVE_FROM_UP,
+    ANIMATION_SYNTHESIZE_MOVE_FROM_DOWN,
+    ANIMATION_SYNTHESIZE_MOVE_FROM_LEFT,
+    ANIMATION_SYNTHESIZE_MOVE_FROM_RIGHT
 };
 
 typedef uint8_t animation_atlas_id_t;
@@ -1217,22 +1225,31 @@ enum ev {
     EVENT_DEATH,
     EVENT_PULSE,
     EVENT_SYNTHESIZE,
-    EVENT_MOVE_FROM_UP,
-    EVENT_MOVE_FROM_DOWN,
-    EVENT_MOVE_FROM_LEFT,
-    EVENT_MOVE_FROM_RIGHT,
-    EVENT_MOVE_TO_UP,
-    EVENT_MOVE_TO_DOWN,
-    EVENT_MOVE_TO_LEFT,
-    EVENT_MOVE_TO_RIGHT,
+    EVENT_BIRTH_UP,
+    EVENT_BIRTH_DOWN,
+    EVENT_BIRTH_LEFT,
+    EVENT_BIRTH_RIGHT,
     EVENT_DIVISION_UP,
     EVENT_DIVISION_DOWN,
     EVENT_DIVISION_LEFT,
     EVENT_DIVISION_RIGHT,
-    EVENT_BIRTH_UP,
-    EVENT_BIRTH_DOWN,
-    EVENT_BIRTH_LEFT,
-    EVENT_BIRTH_RIGHT
+    EVENT_MOVE_TO_UP,
+    EVENT_MOVE_TO_DOWN,
+    EVENT_MOVE_TO_LEFT,
+    EVENT_MOVE_TO_RIGHT,
+    EVENT_MOVE_FROM_UP,
+    EVENT_MOVE_FROM_DOWN,
+    EVENT_MOVE_FROM_LEFT,
+    EVENT_MOVE_FROM_RIGHT,
+    EVENT_SYNTHESIZE_MOVE_TO_UP,
+    EVENT_SYNTHESIZE_MOVE_TO_DOWN,
+    EVENT_SYNTHESIZE_MOVE_TO_LEFT,
+    EVENT_SYNTHESIZE_MOVE_TO_RIGHT,
+    EVENT_SYNTHESIZE_MOVE_FROM_UP,
+    EVENT_SYNTHESIZE_MOVE_FROM_DOWN,
+    EVENT_SYNTHESIZE_MOVE_FROM_LEFT,
+    EVENT_SYNTHESIZE_MOVE_FROM_RIGHT,
+    EVENTS_TOTAL
 };
 
 typedef uint32_t ev_info_t;
@@ -1462,8 +1479,13 @@ void advance_instinct(void) {
                     }
                 }
                 if (selected_tile != tile) {
-                    UNDOC_EVENT(EVENT_SYNTHESIZE);
-                    DOC_EVENT(EVENT_MOVE_FROM_UP + direction);
+                    bool is_synthesizing = EVENT(EVENT_SYNTHESIZE);
+                    if (is_synthesizing) {
+                        UNDOC_EVENT(EVENT_SYNTHESIZE);
+                        DOC_EVENT(EVENT_SYNTHESIZE_MOVE_FROM_UP + direction);
+                    } else {
+                        DOC_EVENT(EVENT_MOVE_FROM_UP + direction);
+                    }
                     selected_tile->cell.energy = --tile->cell.energy;
                     selected_tile->cell.age = tile->cell.age;
                     selected_tile->cell.evolution_info = tile->cell.evolution_info;
@@ -1472,7 +1494,11 @@ void advance_instinct(void) {
                     tile->cell.evolution_info = 0;
                     tile = selected_tile;
                     USE_EVOLUTION(EVOLUTION_MOTILITY);
-                    DOC_EVENT(EVENT_MOVE_TO_UP + direction);
+                    if (is_synthesizing) {
+                        DOC_EVENT(EVENT_SYNTHESIZE_MOVE_TO_UP + direction);
+                    } else {
+                        DOC_EVENT(EVENT_MOVE_TO_UP + direction);
+                    }
                     continue;
                 }
             }
@@ -2083,213 +2109,17 @@ bool ux_sim(void) {
                         return false;
                     }
                 }
-                if (EVENT(EVENT_DEATH)) {
-                    select_animation_frame(
-                        &srcrect,
-                        ANIMATION_DEATH,
-                        curr_tick - animation_tick,
-                        speed
-                    );
-                    if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
-                        return false;
-                    }
-                }
-                if (EVENT(EVENT_PULSE)) {
-                    select_animation_frame(
-                        &srcrect,
-                        ANIMATION_PULSE,
-                        curr_tick - animation_tick,
-                        speed
-                    );
-                    if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
-                        return false;
-                    }
-                }
-                if (EVENT(EVENT_SYNTHESIZE)) {
-                    select_animation_frame(
-                        &srcrect,
-                        ANIMATION_SYNTHESIZE,
-                        curr_tick - animation_tick,
-                        speed
-                    );
-                    if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
-                        return false;
-                    }
-                }
-                if (EVENT(EVENT_DIVISION_UP)) {
-                    select_animation_frame(
-                        &srcrect,
-                        ANIMATION_DIVISION_UP,
-                        curr_tick - animation_tick,
-                        speed
-                    );
-                    if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
-                        return false;
-                    }
-                }
-                if (EVENT(EVENT_DIVISION_DOWN)) {
-                    select_animation_frame(
-                        &srcrect,
-                        ANIMATION_DIVISION_DOWN,
-                        curr_tick - animation_tick,
-                        speed
-                    );
-                    if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
-                        return false;
-                    }
-                }
-                if (EVENT(EVENT_DIVISION_LEFT)) {
-                    select_animation_frame(
-                        &srcrect,
-                        ANIMATION_DIVISION_LEFT,
-                        curr_tick - animation_tick,
-                        speed
-                    );
-                    if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
-                        return false;
-                    }
-                }
-                if (EVENT(EVENT_DIVISION_RIGHT)) {
-                    select_animation_frame(
-                        &srcrect,
-                        ANIMATION_DIVISION_RIGHT,
-                        curr_tick - animation_tick,
-                        speed
-                    );
-                    if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
-                        return false;
-                    }
-                }
-                if (EVENT(EVENT_BIRTH_UP)) {
-                    select_animation_frame(
-                        &srcrect,
-                        ANIMATION_BIRTH_UP,
-                        curr_tick - animation_tick,
-                        speed
-                    );
-                    if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
-                        return false;
-                    }
-                }
-                if (EVENT(EVENT_BIRTH_DOWN)) {
-                    select_animation_frame(
-                        &srcrect,
-                        ANIMATION_BIRTH_DOWN,
-                        curr_tick - animation_tick,
-                        speed
-                    );
-                    if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
-                        return false;
-                    }
-                }
-                if (EVENT(EVENT_BIRTH_LEFT)) {
-                    select_animation_frame(
-                        &srcrect,
-                        ANIMATION_BIRTH_LEFT,
-                        curr_tick - animation_tick,
-                        speed
-                    );
-                    if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
-                        return false;
-                    }
-                }
-                if (EVENT(EVENT_BIRTH_RIGHT)) {
-                    select_animation_frame(
-                        &srcrect,
-                        ANIMATION_BIRTH_RIGHT,
-                        curr_tick - animation_tick,
-                        speed
-                    );
-                    if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
-                        return false;
-                    }
-                }
-                if (EVENT(EVENT_MOVE_FROM_UP)) {
-                    select_animation_frame(
-                        &srcrect,
-                        ANIMATION_MOVE_FROM_UP,
-                        curr_tick - animation_tick,
-                        speed
-                    );
-                    if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
-                        return false;
-                    }
-                }
-                if (EVENT(EVENT_MOVE_FROM_DOWN)) {
-                    select_animation_frame(
-                        &srcrect,
-                        ANIMATION_MOVE_FROM_DOWN,
-                        curr_tick - animation_tick,
-                        speed
-                    );
-                    if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
-                        return false;
-                    }
-                }
-                if (EVENT(EVENT_MOVE_FROM_LEFT)) {
-                    select_animation_frame(
-                        &srcrect,
-                        ANIMATION_MOVE_FROM_LEFT,
-                        curr_tick - animation_tick,
-                        speed
-                    );
-                    if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
-                        return false;
-                    }
-                }
-                if (EVENT(EVENT_MOVE_FROM_RIGHT)) {
-                    select_animation_frame(
-                        &srcrect,
-                        ANIMATION_MOVE_FROM_RIGHT,
-                        curr_tick - animation_tick,
-                        speed
-                    );
-                    if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
-                        return false;
-                    }
-                }
-                if (EVENT(EVENT_MOVE_TO_UP)) {
-                    select_animation_frame(
-                        &srcrect,
-                        ANIMATION_MOVE_TO_UP,
-                        curr_tick - animation_tick,
-                        speed
-                    );
-                    if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
-                        return false;
-                    }
-                }
-                if (EVENT(EVENT_MOVE_TO_DOWN)) {
-                    select_animation_frame(
-                        &srcrect,
-                        ANIMATION_MOVE_TO_DOWN,
-                        curr_tick - animation_tick,
-                        speed
-                    );
-                    if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
-                        return false;
-                    }
-                }
-                if (EVENT(EVENT_MOVE_TO_LEFT)) {
-                    select_animation_frame(
-                        &srcrect,
-                        ANIMATION_MOVE_TO_LEFT,
-                        curr_tick - animation_tick,
-                        speed
-                    );
-                    if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
-                        return false;
-                    }
-                }
-                if (EVENT(EVENT_MOVE_TO_RIGHT)) {
-                    select_animation_frame(
-                        &srcrect,
-                        ANIMATION_MOVE_TO_RIGHT,
-                        curr_tick - animation_tick,
-                        speed
-                    );
-                    if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
-                        return false;
+                for (enum ev ev = 0; ev < EVENTS_TOTAL; ++ev) {
+                    if (EVENT(ev)) {
+                        select_animation_frame(
+                            &srcrect,
+                            ev + 2,
+                            curr_tick - animation_tick,
+                            speed
+                        );
+                        if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
+                            return false;
+                        }
                     }
                 }
             }
