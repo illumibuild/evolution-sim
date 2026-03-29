@@ -161,3 +161,9 @@ All notable changes to this project will be documented here.
 #### Fixed:
 
 - Fixed a visual bug that would occur when a cell both synthesizes energy and moves on the same tick.
+
+### v0.2.0 beta 1 - 03/29/2026
+
+#### Added:
+
+- Added a separate animation for when a cell both synthesizes energy and moves on the same tick.
