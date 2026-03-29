@@ -46,8 +46,8 @@ uint32_t rng_rand(void) {
 #define TILE_WIDTH  180
 #define TILE_HEIGHT 180
 
-#define ICON_WIDTH  30
-#define ICON_HEIGHT 30
+#define ICON_WIDTH  20
+#define ICON_HEIGHT 20
 
 #define ANIMATION_MS 500
 #define ANIMATION_FPS 8
@@ -171,7 +171,7 @@ void nk_skin(void) {
     nk_ctx->style.button.text_normal = COLOR_FG;
     nk_ctx->style.button.text_hover = COLOR_FG;
     nk_ctx->style.button.text_active = COLOR_FG;
-    nk_ctx->style.button.image_padding = nk_vec2(0, 0);
+    nk_ctx->style.button.image_padding = nk_vec2(-2, -2);
     style_button_disabled = nk_ctx->style.button;
     style_button_disabled.normal.data.color = COLOR_TRIGGER;
     style_button_disabled.hover.data.color = COLOR_TRIGGER;
@@ -287,6 +287,62 @@ enum gui_element_type {
 
 typedef uint8_t gui_element_type_t;
 
+#define GUI_ELEMENT_COMMON_MARGIN 10
+
+#define GUI_LABEL_ELEMENT_HEIGHT 24
+
+#define GUI_TEXT_ELEMENT_HEIGHT GUI_LABEL_ELEMENT_HEIGHT
+
+#define GUI_INPUT_ELEMENT_HEIGHT 40
+
+#define GUI_BUTTON_ELEMENT_HEIGHT 40
+
+#define GUI_ICON_BUTTON_ELEMENT_WIDTH 30
+#define GUI_ICON_BUTTON_ELEMENT_HEIGHT GUI_ICON_BUTTON_ELEMENT_WIDTH
+
+#define GUI_PANEL_ELEMENT_OUTLINE 2
+
+struct nk_rect
+    label_world_size_pos(void),
+    label_seed_pos(void),
+    label_seed_pos(void),
+    label_mul_pos(void),
+    label_version_pos(void),
+    label_release_date_pos(void);
+
+struct nk_rect
+    text_error_pos(void),
+    text_generating_pos(void),
+    text_zoom_pos(void),
+    text_speed_pos(void),
+    text_report_pointer_pos_pos(void),
+    text_report_curr_tile_energy_pos(void),
+    text_report_curr_cell_age_pos(void),
+    text_report_curr_cell_energy_pos(void),
+    text_report_world_size_pos(void),
+    text_report_seed_pos(void),
+    text_report_gen_pos(void),
+    text_report_live_cell_count_pos(void);
+
+struct nk_rect
+    input_world_width_pos(void),
+    input_world_height_pos(void),
+    input_seed_pos(void);
+
+struct nk_rect button_generate_pos(void);
+
+struct nk_rect
+    icon_button_start_pos(void),
+    icon_button_stop_pos(void),
+    icon_button_step_pos(void),
+    icon_button_zoom_in_pos(void),
+    icon_button_zoom_out_pos(void),
+    icon_button_speed_up_pos(void),
+    icon_button_slow_down_pos(void),
+    icon_button_quit_pos(void);
+
+struct nk_rect panel_controls_pos(void);
+
 struct gui_label_element {
     const gui_element_type_t type;
     const ux_state_t ux_state;
@@ -298,45 +354,47 @@ struct gui_label_element {
 struct nk_rect label_world_size_pos(void) {
     return nk_rect(
         window_w / 2 - 150,
-        window_h / 2 - 72,
+        window_h / 2 - 3 * GUI_ELEMENT_COMMON_MARGIN / 2 -
+        GUI_INPUT_ELEMENT_HEIGHT - GUI_LABEL_ELEMENT_HEIGHT,
         300,
-        24
+        GUI_LABEL_ELEMENT_HEIGHT
     );
 }
 
 struct nk_rect label_seed_pos(void) {
     return nk_rect(
         window_w / 2 - 150,
-        window_h / 2 + 8,
+        window_h / 2 + GUI_ELEMENT_COMMON_MARGIN / 2,
         300,
-        24
+        GUI_LABEL_ELEMENT_HEIGHT
     );
 }
 
 struct nk_rect label_mul_pos(void) {
     return nk_rect(
         window_w / 2 - 11,
-        window_h / 2 - 32,
+        window_h / 2 - GUI_ELEMENT_COMMON_MARGIN / 2 -
+        (GUI_LABEL_ELEMENT_HEIGHT + GUI_INPUT_ELEMENT_HEIGHT) / 2,
         22,
-        24
+        GUI_LABEL_ELEMENT_HEIGHT
     );
 }
 
 struct nk_rect label_version_pos(void) {
     return nk_rect(
-        10,
-        window_h - 58,
-        window_w - 20,
-        24
+        GUI_ELEMENT_COMMON_MARGIN,
+        window_h - GUI_ELEMENT_COMMON_MARGIN - 2 * GUI_LABEL_ELEMENT_HEIGHT,
+        window_w - 2 * GUI_ELEMENT_COMMON_MARGIN,
+        GUI_LABEL_ELEMENT_HEIGHT
     );
 }
 
 struct nk_rect label_release_date_pos(void) {
     return nk_rect(
-        10,
-        window_h - 34,
-        window_w - 20,
-        24
+        GUI_ELEMENT_COMMON_MARGIN,
+        window_h - GUI_ELEMENT_COMMON_MARGIN - GUI_LABEL_ELEMENT_HEIGHT,
+        window_w - 2 * GUI_ELEMENT_COMMON_MARGIN,
+        GUI_LABEL_ELEMENT_HEIGHT
     );
 }
 
@@ -352,108 +410,119 @@ struct gui_text_element {
 struct nk_rect text_error_pos(void) {
     return nk_rect(
         window_w / 2 - 300,
-        window_h / 2 + 200,
+        window_h / 2 + 11 * GUI_ELEMENT_COMMON_MARGIN / 2 +
+        3 * GUI_LABEL_ELEMENT_HEIGHT + GUI_INPUT_ELEMENT_HEIGHT + GUI_BUTTON_ELEMENT_HEIGHT,
         600,
-        24
+        GUI_TEXT_ELEMENT_HEIGHT
     );
 }
 
 struct nk_rect text_generating_pos(void) {
     return nk_rect(
-        10,
-        window_h / 2 - 12,
-        window_w - 20,
-        24
+        GUI_ELEMENT_COMMON_MARGIN,
+        window_h / 2 - GUI_TEXT_ELEMENT_HEIGHT / 2,
+        window_w - 2 * GUI_ELEMENT_COMMON_MARGIN,
+        GUI_TEXT_ELEMENT_HEIGHT
     );
 }
 
 struct nk_rect text_zoom_pos(void) {
     return nk_rect(
-        260,
-        20,
-        80,
-        24
+        6 * GUI_ELEMENT_COMMON_MARGIN + 5 * GUI_ICON_BUTTON_ELEMENT_WIDTH,
+        3 * GUI_ELEMENT_COMMON_MARGIN / 2,
+        60,
+        GUI_TEXT_ELEMENT_HEIGHT
     );
 }
 
 struct nk_rect text_speed_pos(void) {
+    const struct nk_rect text_zoom_pos_rect = text_zoom_pos();
     return nk_rect(
-        500,
-        20,
-        40,
-        24
+        10 * GUI_ELEMENT_COMMON_MARGIN + 8 * GUI_ICON_BUTTON_ELEMENT_WIDTH +
+        text_zoom_pos_rect.w,
+        3 * GUI_ELEMENT_COMMON_MARGIN / 2,
+        30,
+        GUI_TEXT_ELEMENT_HEIGHT
     );
 }
 
 struct nk_rect text_report_pointer_pos_pos(void) {
+    const struct nk_rect panel_controls_pos_rect = panel_controls_pos();
     return nk_rect(
-        10,
-        70,
-        window_w - 20,
-        24
+        GUI_ELEMENT_COMMON_MARGIN,
+        panel_controls_pos_rect.y + panel_controls_pos_rect.h +
+        GUI_ELEMENT_COMMON_MARGIN,
+        window_w - 2 * GUI_ELEMENT_COMMON_MARGIN,
+        GUI_TEXT_ELEMENT_HEIGHT
     );
 }
 
 struct nk_rect text_report_curr_tile_energy_pos(void) {
+    const struct nk_rect panel_controls_pos_rect = panel_controls_pos();
     return nk_rect(
-        10,
-        104,
-        window_w - 20,
-        24
+        GUI_ELEMENT_COMMON_MARGIN,
+        panel_controls_pos_rect.y + panel_controls_pos_rect.h +
+        GUI_ELEMENT_COMMON_MARGIN + 2 * GUI_TEXT_ELEMENT_HEIGHT,
+        window_w - 2 * GUI_ELEMENT_COMMON_MARGIN,
+        GUI_TEXT_ELEMENT_HEIGHT
     );
 }
 
 struct nk_rect text_report_curr_cell_age_pos(void) {
+    const struct nk_rect panel_controls_pos_rect = panel_controls_pos();
     return nk_rect(
-        10,
-        138,
-        window_w - 20,
-        24
+        GUI_ELEMENT_COMMON_MARGIN,
+        panel_controls_pos_rect.y + panel_controls_pos_rect.h +
+        GUI_ELEMENT_COMMON_MARGIN + 3 * GUI_TEXT_ELEMENT_HEIGHT,
+        window_w - 2 * GUI_ELEMENT_COMMON_MARGIN,
+        GUI_TEXT_ELEMENT_HEIGHT
     );
 }
 
 struct nk_rect text_report_curr_cell_energy_pos(void) {
+    const struct nk_rect panel_controls_pos_rect = panel_controls_pos();
     return nk_rect(
-        10,
-        172,
-        window_w - 20,
-        24
+        GUI_ELEMENT_COMMON_MARGIN,
+        panel_controls_pos_rect.y + panel_controls_pos_rect.h +
+        GUI_ELEMENT_COMMON_MARGIN + 4 * GUI_TEXT_ELEMENT_HEIGHT,
+        window_w - 2 * GUI_ELEMENT_COMMON_MARGIN,
+        GUI_TEXT_ELEMENT_HEIGHT
     );
 }
 
 struct nk_rect text_report_world_size_pos(void) {
     return nk_rect(
-        10,
-        window_h - 106,
-        window_w - 20,
-        24
+        GUI_ELEMENT_COMMON_MARGIN,
+        window_h - GUI_ELEMENT_COMMON_MARGIN - 4 * GUI_TEXT_ELEMENT_HEIGHT,
+        window_w - 2 * GUI_ELEMENT_COMMON_MARGIN,
+        GUI_TEXT_ELEMENT_HEIGHT
     );
 }
 
 struct nk_rect text_report_seed_pos(void) {
     return nk_rect(
-        10,
-        window_h - 82,
-        window_w - 20,
-        24
+        GUI_ELEMENT_COMMON_MARGIN,
+        window_h - GUI_ELEMENT_COMMON_MARGIN - 3 * GUI_TEXT_ELEMENT_HEIGHT,
+        window_w - 2 * GUI_ELEMENT_COMMON_MARGIN,
+        GUI_TEXT_ELEMENT_HEIGHT
     );
 }
 
 struct nk_rect text_report_gen_pos(void) {
     return nk_rect(
-        10,
-        window_h - 58,
-        window_w - 20,
-        24
+        GUI_ELEMENT_COMMON_MARGIN,
+        window_h - GUI_ELEMENT_COMMON_MARGIN - 2 * GUI_TEXT_ELEMENT_HEIGHT,
+        window_w - 2 * GUI_ELEMENT_COMMON_MARGIN,
+        GUI_TEXT_ELEMENT_HEIGHT
     );
 }
 
 struct nk_rect text_report_live_cell_count_pos(void) {
     return nk_rect(
-        10,
-        window_h - 34,
-        window_w - 20,
-        24
+        GUI_ELEMENT_COMMON_MARGIN,
+        window_h - GUI_ELEMENT_COMMON_MARGIN - GUI_TEXT_ELEMENT_HEIGHT,
+        window_w - 2 * GUI_ELEMENT_COMMON_MARGIN,
+        GUI_TEXT_ELEMENT_HEIGHT
     );
 }
 
@@ -467,29 +536,31 @@ struct gui_input_element {
 };
 
 struct nk_rect input_world_width_pos(void) {
+    const struct nk_rect label_mul_pos_rect = label_mul_pos();
     return nk_rect(
         window_w / 2 - 150,
-        window_h / 2 - 40,
-        134,
-        40
+        window_h / 2 - GUI_ELEMENT_COMMON_MARGIN / 2 - GUI_INPUT_ELEMENT_HEIGHT,
+        300 / 2 - label_mul_pos_rect.w / 2 - GUI_ELEMENT_COMMON_MARGIN / 2,
+        GUI_INPUT_ELEMENT_HEIGHT
     );
 }
 
 struct nk_rect input_world_height_pos(void) {
+    const struct nk_rect label_mul_pos_rect = label_mul_pos();
     return nk_rect(
         window_w / 2 + 16,
-        window_h / 2 - 40,
-        134,
-        40
+        window_h / 2 - GUI_ELEMENT_COMMON_MARGIN / 2 - GUI_INPUT_ELEMENT_HEIGHT,
+        300 / 2 - label_mul_pos_rect.w / 2 - GUI_ELEMENT_COMMON_MARGIN / 2,
+        GUI_INPUT_ELEMENT_HEIGHT
     );
 }
 
 struct nk_rect input_seed_pos(void) {
     return nk_rect(
         window_w / 2 - 150,
-        window_h / 2 + 40,
+        window_h / 2 + 3 * GUI_ELEMENT_COMMON_MARGIN / 2 + GUI_LABEL_ELEMENT_HEIGHT,
         300,
-        40
+        GUI_INPUT_ELEMENT_HEIGHT
     );
 }
 
@@ -504,9 +575,10 @@ struct gui_button_element {
 struct nk_rect button_generate_pos(void) {
     return nk_rect(
         window_w / 2 - 100,
-        window_h / 2 + 120,
+        window_h / 2 + 7 * GUI_ELEMENT_COMMON_MARGIN / 2 +
+        2 * GUI_LABEL_ELEMENT_HEIGHT + GUI_INPUT_ELEMENT_HEIGHT,
         200,
-        40
+        GUI_BUTTON_ELEMENT_HEIGHT
     );
 }
 
@@ -520,73 +592,81 @@ struct gui_icon_button_element {
 
 struct nk_rect icon_button_start_pos(void) {
     return nk_rect(
-        10,
-        10,
-        40,
-        40
+        GUI_ELEMENT_COMMON_MARGIN,
+        GUI_ELEMENT_COMMON_MARGIN,
+        GUI_ICON_BUTTON_ELEMENT_WIDTH,
+        GUI_ICON_BUTTON_ELEMENT_HEIGHT
     );
 }
 
 struct nk_rect icon_button_stop_pos(void) {
     return nk_rect(
-        60,
-        10,
-        40,
-        40
+        2 * GUI_ELEMENT_COMMON_MARGIN + GUI_ICON_BUTTON_ELEMENT_WIDTH,
+        GUI_ELEMENT_COMMON_MARGIN,
+        GUI_ICON_BUTTON_ELEMENT_WIDTH,
+        GUI_ICON_BUTTON_ELEMENT_HEIGHT
     );
 }
 
 struct nk_rect icon_button_step_pos(void) {
     return nk_rect(
-        110,
-        10,
-        40,
-        40
+        3 * GUI_ELEMENT_COMMON_MARGIN + 2 * GUI_ICON_BUTTON_ELEMENT_WIDTH,
+        GUI_ELEMENT_COMMON_MARGIN,
+        GUI_ICON_BUTTON_ELEMENT_WIDTH,
+        GUI_ICON_BUTTON_ELEMENT_HEIGHT
     );
 }
 
 struct nk_rect icon_button_zoom_in_pos(void) {
     return nk_rect(
-        210,
-        10,
-        40,
-        40
+        5 * GUI_ELEMENT_COMMON_MARGIN + 4 * GUI_ICON_BUTTON_ELEMENT_WIDTH,
+        GUI_ELEMENT_COMMON_MARGIN,
+        GUI_ICON_BUTTON_ELEMENT_WIDTH,
+        GUI_ICON_BUTTON_ELEMENT_HEIGHT
     );
 }
 
 struct nk_rect icon_button_zoom_out_pos(void) {
+    const struct nk_rect text_zoom_pos_rect = text_zoom_pos();
     return nk_rect(
-        350,
-        10,
-        40,
-        40
+        7 * GUI_ELEMENT_COMMON_MARGIN + 5 * GUI_ICON_BUTTON_ELEMENT_WIDTH +
+        text_zoom_pos_rect.w,
+        GUI_ELEMENT_COMMON_MARGIN,
+        GUI_ICON_BUTTON_ELEMENT_WIDTH,
+        GUI_ICON_BUTTON_ELEMENT_HEIGHT
     );
 }
 
 struct nk_rect icon_button_speed_up_pos(void) {
+    const struct nk_rect text_zoom_pos_rect = text_zoom_pos();
     return nk_rect(
-        450,
-        10,
-        40,
-        40
+        9 * GUI_ELEMENT_COMMON_MARGIN + 7 * GUI_ICON_BUTTON_ELEMENT_WIDTH +
+        text_zoom_pos_rect.w,
+        GUI_ELEMENT_COMMON_MARGIN,
+        GUI_ICON_BUTTON_ELEMENT_WIDTH,
+        GUI_ICON_BUTTON_ELEMENT_HEIGHT
     );
 }
 
 struct nk_rect icon_button_slow_down_pos(void) {
+    const struct nk_rect
+        text_zoom_pos_rect = text_zoom_pos(),
+        text_speed_pos_rect = text_speed_pos();
     return nk_rect(
-        550,
-        10,
-        40,
-        40
+        11 * GUI_ELEMENT_COMMON_MARGIN + 8 * GUI_ICON_BUTTON_ELEMENT_WIDTH +
+        text_zoom_pos_rect.w + text_speed_pos_rect.w,
+        GUI_ELEMENT_COMMON_MARGIN,
+        GUI_ICON_BUTTON_ELEMENT_WIDTH,
+        GUI_ICON_BUTTON_ELEMENT_HEIGHT
     );
 }
 
 struct nk_rect icon_button_quit_pos(void) {
     return nk_rect(
-        window_w - 50,
-        10,
-        40,
-        40
+        window_w - GUI_ELEMENT_COMMON_MARGIN - GUI_ICON_BUTTON_ELEMENT_WIDTH,
+        GUI_ELEMENT_COMMON_MARGIN,
+        GUI_ICON_BUTTON_ELEMENT_WIDTH,
+        GUI_ICON_BUTTON_ELEMENT_HEIGHT
     );
 }
 
@@ -599,10 +679,12 @@ struct gui_panel_element {
 
 struct nk_rect panel_controls_pos(void) {
     return nk_rect(
-        -2,
-        -2,
-        window_w + 4,
-        62
+        -GUI_PANEL_ELEMENT_OUTLINE,
+        -GUI_PANEL_ELEMENT_OUTLINE,
+        window_w + 2 * GUI_PANEL_ELEMENT_OUTLINE,
+        GUI_ICON_BUTTON_ELEMENT_HEIGHT +
+        2 * GUI_ELEMENT_COMMON_MARGIN +
+        2 * GUI_PANEL_ELEMENT_OUTLINE
     );
 }
 
@@ -816,7 +898,7 @@ union gui_element gui_elements[] = {
         .text_element = {
             .type = GUI_TEXT,
             .ux_state = UX_SIM,
-            .max = 18,
+            .max = 16,
             .alignment = NK_TEXT_ALIGN_LEFT,
             .buffer = NULL,
             .pos = text_report_pointer_pos_pos
@@ -1845,7 +1927,7 @@ bool ux_sim(void) {
     }
     int32_t mouse_x, mouse_y;
     uint32_t mouse_state = SDL_GetMouseState(&mouse_x, &mouse_y);
-    const struct nk_rect panel_controls_pos_rect = GUI_PANEL_CONTROLS.pos();
+    const struct nk_rect panel_controls_pos_rect = panel_controls_pos();
     if (
         mouse_x >= 0 &&
         mouse_y >= panel_controls_pos_rect.h &&
@@ -1962,7 +2044,7 @@ bool ux_sim(void) {
             snprintf(
                 GUI_TEXT_REPORT_POINTER_POS.buffer,
                 GUI_TEXT_REPORT_POINTER_POS.max + 1,
-                "X: %u; Y: %u",
+                "XY: %u, %u",
                 (uint32_t)pointer_x,
                 (uint32_t)pointer_y
             );
