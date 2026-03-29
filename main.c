@@ -123,7 +123,16 @@ void select_animation_frame(
     uint32_t tick_diff,
     uint8_t speed
 ) {
-    srcrect->x = tick_diff / (1000 / (ANIMATION_FPS * speed)) * TILE_WIDTH;
+    static uint32_t prev_tick_diff = UINT32_MAX, frame, prev_speed = 0, spf;
+    if (speed != prev_speed) {
+        prev_speed = speed;
+        spf = (1000 / (ANIMATION_FPS * speed) + !!(1000 % (ANIMATION_FPS * speed)));
+    }
+    if (tick_diff != prev_tick_diff) {
+        prev_tick_diff = tick_diff;
+        frame = tick_diff / spf;
+    }
+    srcrect->x = frame * TILE_WIDTH;
     srcrect->y = atlas_id * TILE_HEIGHT;
 }
 
@@ -2024,8 +2033,7 @@ bool ux_sim(void) {
     if (auto_mode && animation_tick == 0) {
         advance();
         animation_tick = curr_tick;
-    }
-    if (animation_tick != 0 && curr_tick >= animation_tick + ANIMATION_MS / speed) {
+    } else if (animation_tick != 0 && curr_tick > animation_tick + ANIMATION_MS / speed) {
         animation_tick = 0;
     }
     if (
