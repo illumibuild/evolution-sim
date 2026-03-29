@@ -167,3 +167,23 @@ All notable changes to this project will be documented here.
 #### Added:
 
 - Added a separate animation for when a cell both synthesizes energy and moves on the same tick.
+
+### v0.2.0 beta 2 - 03/29/2026
+
+#### Changed:
+
+- Made the icons and the control panel smaller.
+
+- Slightly changed the formatting of the coordinate display.
+
+- Plus many other small tweaks...
+
+#### Fixed:
+
+- Fixed poor icon rendering quality.
+
+- Fixed a long-term bug that caused random flickering and missed rendering frames.
+
+- Optimized animation frame calculation.
+
+- Plus many other small corrections...
