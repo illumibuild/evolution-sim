@@ -21,7 +21,7 @@
 #include <nuklear_sdl_renderer.h>
 
 #define TITLE "evolution-sim"
-#define VERSION "v0.2.0 beta 1"
+#define VERSION "v0.2.0 beta 2 preview"
 #define RELEASE_DATE "03/29/2026"
 
 uint32_t rng_state, rng_seed;
@@ -2039,23 +2039,33 @@ bool ux_sim(void) {
         cam_x = -((int32_t)world.w * (int32_t)tile_w - window_w);
     }
     if (
-        window_h - panel_controls_pos_rect.h > world.h * tile_h ||
+        window_h - panel_controls_pos_rect.y - panel_controls_pos_rect.h > world.h * tile_h ||
         (
             cam_y > 0 &&
             cam_y < -(
-                (int32_t)world.h * (int32_t)tile_h - window_h + panel_controls_pos_rect.h
+                (int32_t)world.h * (int32_t)tile_h -
+                window_h + panel_controls_pos_rect.y + panel_controls_pos_rect.h
             )
         )
     ) {
         cam_y = -(
-            (int32_t)world.h * (int32_t)tile_h - window_h + panel_controls_pos_rect.h
+            (int32_t)world.h * (int32_t)tile_h -
+            window_h + panel_controls_pos_rect.y + panel_controls_pos_rect.h
         ) / 2;
     } else if (cam_y > 0) {
         cam_y = 0;
     } else if (
-        cam_y < -((int32_t)world.h * (int32_t)tile_h - window_h + panel_controls_pos_rect.h)
+        cam_y <
+        -(
+            (int32_t)world.h * (int32_t)tile_h -
+            window_h + panel_controls_pos_rect.y + panel_controls_pos_rect.h
+        )
     ) {
-        cam_y = -((int32_t)world.h * (int32_t)tile_h - window_h + panel_controls_pos_rect.h);
+        cam_y =
+            -(
+                (int32_t)world.h * (int32_t)tile_h -
+                window_h + panel_controls_pos_rect.y + panel_controls_pos_rect.h
+            );
     }
     SDL_Rect
         srcrect = { .w = TILE_WIDTH, .h = TILE_HEIGHT },
@@ -2063,7 +2073,9 @@ bool ux_sim(void) {
     for (uint16_t x = 0; x < world.w; ++x) {
         for (uint16_t y = 0; y < world.h; ++y) {
             dstrect.x = (int32_t)x * tile_w + cam_x;
-            dstrect.y = (int32_t)y * tile_h + panel_controls_pos_rect.h + cam_y;
+            dstrect.y =
+                (int32_t)y * tile_h +
+                panel_controls_pos_rect.y + panel_controls_pos_rect.h + cam_y;
             if (
                 dstrect.x + dstrect.w < 0 ||
                 dstrect.y + dstrect.h < 0 ||
@@ -2137,7 +2149,9 @@ bool ux_sim(void) {
         return true;
     }
     dstrect.x = (int32_t)pointer_x * tile_w + cam_x;
-    dstrect.y = (int32_t)pointer_y * tile_h + panel_controls_pos_rect.h + cam_y;
+    dstrect.y =
+        (int32_t)pointer_y * tile_h +
+        panel_controls_pos_rect.y + panel_controls_pos_rect.h + cam_y;
     if (
         dstrect.x + dstrect.w >= 0 &&
         dstrect.y + dstrect.h >= 0 &&
