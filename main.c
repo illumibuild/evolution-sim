@@ -21,8 +21,8 @@
 #include <nuklear_sdl_renderer.h>
 
 #define TITLE "evolution-sim"
-#define VERSION "v0.2.0 beta 2"
-#define RELEASE_DATE "03/29/2026"
+#define VERSION "v0.2.0 beta 3 preview"
+#define RELEASE_DATE "03/31/2026"
 
 uint32_t rng_state, rng_seed;
 
@@ -1370,12 +1370,15 @@ struct tile {
 struct world {
     uint32_t gen;
     uint16_t w, h;
-    struct tile *tilemap;
+    struct tile *tilemap, *ptr;
 };
 
 struct world world;
 
 #define TILE_AT(x_, y_) world.tilemap[(y_) * (uint32_t)world.w + (x_)]
+
+#define GET_PTR_X() ((world.ptr - world.tilemap) % world.w)
+#define GET_PTR_Y() ((world.ptr - world.tilemap) / world.w)
 
 #define GENERATION_TILE_INIT_ENERGY_CAP 75
 #define GENERATION_TILE_INIT_ENERGY_SUM (77 * 76 / 2)
@@ -1851,12 +1854,11 @@ bool ux_sim(void) {
     static uint32_t last_gen = UINT32_MAX;
     static uint8_t zoom = DEFAULT_ZOOM, speed = DEFAULT_SPEED;
     static int32_t cam_x = 0, cam_y = 0, drag_x = 0, drag_y = 0;
-    static uint16_t pointer_x = 0, pointer_y = 0;
     static bool
-        is_pointing = false,
         is_dragging = false,
-        has_acted = false,
-        auto_mode = false;
+        has_acted = true,
+        auto_mode = false,
+        has_cleared = true;
     static uint32_t animation_tick = 0;
     if (!is_ready) {
         snprintf(
@@ -1916,9 +1918,8 @@ bool ux_sim(void) {
         speed = DEFAULT_SPEED;
         cam_x = 0;
         cam_y = 0;
-        pointer_x = 0;
-        pointer_y = 0;
         is_dragging = false;
+        has_acted = true;
         auto_mode = false;
         free(world.tilemap);
         world.tilemap = NULL;
@@ -1953,6 +1954,9 @@ bool ux_sim(void) {
         );
     }
     const uint32_t curr_tick = SDL_GetTicks();
+    const int32_t
+        tile_w = TILE_WIDTH * zoom / 100,
+        tile_h = TILE_HEIGHT * zoom / 100;
     if (GUI_ICON_BUTTON_STEP.is_pressed) {
         if (!has_acted && animation_tick == 0) {
             advance();
@@ -2017,74 +2021,95 @@ bool ux_sim(void) {
             );
         }
         has_acted = true;
-    } else {
-        has_acted = false;
-    }
-    const int32_t
-        tile_w = TILE_WIDTH * zoom / 100,
-        tile_h = TILE_HEIGHT * zoom / 100;
-    if (
+    } else if (
+        mouse_state & SDL_BUTTON(SDL_BUTTON_LEFT) &&
         mouse_x >= 0 &&
-        mouse_y >= panel_controls_pos_rect.h &&
+        mouse_y >= panel_controls_pos_rect.y + panel_controls_pos_rect.h &&
         mouse_x < window_w &&
         mouse_y < window_h
     ) {
-        const int32_t
-            disp_x = mouse_x - cam_x,
-            disp_y = mouse_y - panel_controls_pos_rect.h - cam_y;
-        if (
-            disp_x >= 0 &&
-            disp_y >= 0 &&
-            disp_x < world.w * tile_w &&
-            disp_y < world.h * tile_h
-        ) {
-            pointer_x = disp_x / tile_w;
-            pointer_y = disp_y / tile_h;
-            is_pointing = true;
-            snprintf(
-                GUI_TEXT_REPORT_POINTER_POS.buffer,
-                GUI_TEXT_REPORT_POINTER_POS.max + 1,
-                "XY: %u, %u",
-                (uint32_t)pointer_x,
-                (uint32_t)pointer_y
-            );
-            struct tile *tile = &TILE_AT(pointer_x, pointer_y);
-            snprintf(
-                GUI_TEXT_REPORT_CURR_TILE_ENERGY.buffer,
-                GUI_TEXT_REPORT_CURR_TILE_ENERGY.max + 1,
-                "Tile energy: %u",
-                (uint32_t)tile->energy
-            );
-            if (tile->cell.energy != 0) {
-                snprintf(
-                    GUI_TEXT_REPORT_CURR_CELL_AGE.buffer,
-                    GUI_TEXT_REPORT_CURR_CELL_AGE.max + 1,
-                    "Cell age: %u",
-                    (uint32_t)tile->cell.age
-                );
-                snprintf(
-                    GUI_TEXT_REPORT_CURR_CELL_ENERGY.buffer,
-                    GUI_TEXT_REPORT_CURR_CELL_ENERGY.max + 1,
-                    "Cell energy: %u",
-                    (uint32_t)tile->cell.energy
-                );
+        if (!has_acted) {
+            const int32_t
+                disp_x = mouse_x - cam_x,
+                disp_y =
+                    mouse_y - panel_controls_pos_rect.y - panel_controls_pos_rect.h - cam_y;
+            if (
+                disp_x >= 0 &&
+                disp_y >= 0 &&
+                disp_x < world.w * tile_w &&
+                disp_y < world.h * tile_h
+            ) {
+                world.ptr = &TILE_AT(disp_x / tile_w, disp_y / tile_h);
+                has_cleared = false;
             } else {
-                memset(
-                    GUI_TEXT_REPORT_CURR_CELL_AGE.buffer,
-                    '\0',
-                    GUI_TEXT_REPORT_CURR_CELL_AGE.max
-                );
-                memset(
-                    GUI_TEXT_REPORT_CURR_CELL_ENERGY.buffer,
-                    '\0',
-                    GUI_TEXT_REPORT_CURR_CELL_ENERGY.max
-                );
+                world.ptr = NULL;
             }
-        } else {
-            is_pointing = false;
         }
+        has_acted = true;
     } else {
-        is_pointing = false;
+        has_acted = false;
+    }
+    if (world.ptr) {
+        snprintf(
+            GUI_TEXT_REPORT_POINTER_POS.buffer,
+            GUI_TEXT_REPORT_POINTER_POS.max + 1,
+            "XY: %u, %u",
+            (uint32_t)GET_PTR_X(),
+            (uint32_t)GET_PTR_Y()
+        );
+        snprintf(
+            GUI_TEXT_REPORT_CURR_TILE_ENERGY.buffer,
+            GUI_TEXT_REPORT_CURR_TILE_ENERGY.max + 1,
+            "Tile energy: %u",
+            (uint32_t)world.ptr->energy
+        );
+        if (world.ptr->cell.energy != 0) {
+            snprintf(
+                GUI_TEXT_REPORT_CURR_CELL_AGE.buffer,
+                GUI_TEXT_REPORT_CURR_CELL_AGE.max + 1,
+                "Cell age: %u",
+                (uint32_t)world.ptr->cell.age
+            );
+            snprintf(
+                GUI_TEXT_REPORT_CURR_CELL_ENERGY.buffer,
+                GUI_TEXT_REPORT_CURR_CELL_ENERGY.max + 1,
+                "Cell energy: %u",
+                (uint32_t)world.ptr->cell.energy
+            );
+        } else {
+            memset(
+                GUI_TEXT_REPORT_CURR_CELL_AGE.buffer,
+                '\0',
+                GUI_TEXT_REPORT_CURR_CELL_AGE.max
+            );
+            memset(
+                GUI_TEXT_REPORT_CURR_CELL_ENERGY.buffer,
+                '\0',
+                GUI_TEXT_REPORT_CURR_CELL_ENERGY.max
+            );
+        }
+    } else if (!has_cleared) {
+        memset(
+            GUI_TEXT_REPORT_POINTER_POS.buffer,
+            '\0',
+            GUI_TEXT_REPORT_POINTER_POS.max
+        );
+        memset(
+            GUI_TEXT_REPORT_CURR_TILE_ENERGY.buffer,
+            '\0',
+            GUI_TEXT_REPORT_CURR_TILE_ENERGY.max
+        );
+        memset(
+            GUI_TEXT_REPORT_CURR_CELL_AGE.buffer,
+            '\0',
+            GUI_TEXT_REPORT_CURR_CELL_AGE.max
+        );
+        memset(
+            GUI_TEXT_REPORT_CURR_CELL_ENERGY.buffer,
+            '\0',
+            GUI_TEXT_REPORT_CURR_CELL_ENERGY.max
+        );
+        has_cleared = true;
     }
     if (
         mouse_state & SDL_BUTTON(SDL_BUTTON_RIGHT) &&
@@ -2235,12 +2260,12 @@ bool ux_sim(void) {
             }
         }
     }
-    if (!is_pointing) {
+    if (!world.ptr) {
         return true;
     }
-    dstrect.x = (int32_t)pointer_x * tile_w + cam_x;
+    dstrect.x = GET_PTR_X() * tile_w + cam_x;
     dstrect.y =
-        (int32_t)pointer_y * tile_h +
+        GET_PTR_Y() * tile_h +
         panel_controls_pos_rect.y + panel_controls_pos_rect.h + cam_y;
     if (
         dstrect.x + dstrect.w >= 0 &&
