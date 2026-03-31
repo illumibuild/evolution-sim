@@ -1930,21 +1930,20 @@ bool ux_sim(void) {
     int32_t mouse_x, mouse_y;
     uint32_t mouse_state = SDL_GetMouseState(&mouse_x, &mouse_y);
     const struct nk_rect panel_controls_pos_rect = panel_controls_pos();
-    const int32_t y_border = panel_controls_pos_rect.y + panel_controls_pos_rect.h;
-    if (
+    const int32_t y_bound = panel_controls_pos_rect.y + panel_controls_pos_rect.h;
+    const bool is_mouse_within_bounds =
         mouse_x >= 0 &&
-        mouse_y >= y_border &&
+        mouse_y >= y_bound &&
         mouse_x < window_w &&
-        mouse_y < window_h &&
-        (
-            (scroll_y > 0 && zoom < MAX_ZOOM) ||
-            (scroll_y < 0 && zoom > MIN_ZOOM)
-        )
+        mouse_y < window_h;
+    if (
+        is_mouse_within_bounds &&
+        ((scroll_y > 0 && zoom < MAX_ZOOM) || (scroll_y < 0 && zoom > MIN_ZOOM))
     ) {
         const uint8_t new_zoom = zoom + (scroll_y < 0 ? -ZOOM_SPEED : ZOOM_SPEED);
         const double factor = (double)new_zoom / zoom;
         cam_x = (cam_x - mouse_x) * factor + mouse_x;
-        cam_y = (cam_y + y_border - mouse_y) * factor - y_border + mouse_y;
+        cam_y = (cam_y + y_bound - mouse_y) * factor - y_bound + mouse_y;
         zoom = new_zoom;
         snprintf(
             GUI_TEXT_ZOOM.buffer,
@@ -1956,7 +1955,14 @@ bool ux_sim(void) {
     const uint32_t curr_tick = SDL_GetTicks();
     const int32_t
         tile_w = TILE_WIDTH * zoom / 100,
-        tile_h = TILE_HEIGHT * zoom / 100;
+        tile_h = TILE_HEIGHT * zoom / 100,
+        disp_x = mouse_x - cam_x,
+        disp_y = mouse_y - y_bound - cam_y;
+    const bool is_mouse_within_disp =
+        disp_x >= 0 &&
+        disp_y >= 0 &&
+        disp_x < world.w * tile_w &&
+        disp_y < world.h * tile_h;
     if (GUI_ICON_BUTTON_STEP.is_pressed) {
         if (!has_acted && animation_tick == 0) {
             advance();
@@ -1969,7 +1975,7 @@ bool ux_sim(void) {
             const double factor = (double)new_zoom / zoom;
             const int32_t
                 center_x = window_w / 2,
-                center_y = (window_h - y_border) / 2;
+                center_y = (window_h - y_bound) / 2;
             cam_x = (cam_x - center_x) * factor + center_x;
             cam_y = (cam_y - center_y) * factor + center_y;
             zoom = new_zoom;
@@ -1987,7 +1993,7 @@ bool ux_sim(void) {
             const double factor = (double)new_zoom / zoom;
             const int32_t
                 center_x = window_w / 2,
-                center_y = (window_h - y_border) / 2;
+                center_y = (window_h - y_bound) / 2;
             cam_x = (cam_x - center_x) * factor + center_x;
             cam_y = (cam_y - center_y) * factor + center_y;
             zoom = new_zoom;
@@ -2022,22 +2028,11 @@ bool ux_sim(void) {
         }
         has_acted = true;
     } else if (
-        mouse_state & SDL_BUTTON(SDL_BUTTON_LEFT) &&
-        mouse_x >= 0 &&
-        mouse_y >= y_border &&
-        mouse_x < window_w &&
-        mouse_y < window_h
+        is_mouse_within_bounds &&
+        (mouse_state & SDL_BUTTON(SDL_BUTTON_LEFT))
     ) {
         if (!has_acted) {
-            const int32_t
-                disp_x = mouse_x - cam_x,
-                disp_y = mouse_y - y_border - cam_y;
-            if (
-                disp_x >= 0 &&
-                disp_y >= 0 &&
-                disp_x < world.w * tile_w &&
-                disp_y < world.h * tile_h
-            ) {
+            if (is_mouse_within_disp) {
                 world.ptr = &TILE_AT(disp_x / tile_w, disp_y / tile_h);
                 has_cleared = false;
             } else {
@@ -2111,11 +2106,8 @@ bool ux_sim(void) {
         has_cleared = true;
     }
     if (
-        mouse_state & SDL_BUTTON(SDL_BUTTON_RIGHT) &&
-        mouse_x >= 0 &&
-        mouse_y >= y_border &&
-        mouse_x < window_w &&
-        mouse_y < window_h
+        is_mouse_within_bounds &&
+        (mouse_state & SDL_BUTTON(SDL_BUTTON_RIGHT))
     ) {
         if (!is_dragging) {
             is_dragging = true;
@@ -2153,17 +2145,17 @@ bool ux_sim(void) {
         cam_x = -((int32_t)world.w * (int32_t)tile_w - window_w);
     }
     if (
-        window_h - y_border > world.h * tile_h ||
+        window_h - y_bound > world.h * tile_h ||
         (
             cam_y > 0 &&
-            cam_y < -((int32_t)world.h * (int32_t)tile_h - window_h + y_border)
+            cam_y < -((int32_t)world.h * (int32_t)tile_h - window_h + y_bound)
         )
     ) {
-        cam_y = -((int32_t)world.h * (int32_t)tile_h - window_h + y_border) / 2;
+        cam_y = -((int32_t)world.h * (int32_t)tile_h - window_h + y_bound) / 2;
     } else if (cam_y > 0) {
         cam_y = 0;
-    } else if (cam_y < -((int32_t)world.h * (int32_t)tile_h - window_h + y_border)) {
-        cam_y = -((int32_t)world.h * (int32_t)tile_h - window_h + y_border);
+    } else if (cam_y < -((int32_t)world.h * (int32_t)tile_h - window_h + y_bound)) {
+        cam_y = -((int32_t)world.h * (int32_t)tile_h - window_h + y_bound);
     }
     SDL_Rect
         srcrect = { .w = TILE_WIDTH, .h = TILE_HEIGHT },
@@ -2171,7 +2163,7 @@ bool ux_sim(void) {
     for (uint16_t x = 0; x < world.w; ++x) {
         for (uint16_t y = 0; y < world.h; ++y) {
             dstrect.x = (int32_t)x * tile_w + cam_x;
-            dstrect.y = (int32_t)y * tile_h + y_border + cam_y;
+            dstrect.y = (int32_t)y * tile_h + y_bound + cam_y;
             if (
                 dstrect.x + dstrect.w < 0 ||
                 dstrect.y + dstrect.h < 0 ||
@@ -2245,7 +2237,7 @@ bool ux_sim(void) {
         return true;
     }
     dstrect.x = GET_PTR_X() * tile_w + cam_x;
-    dstrect.y = GET_PTR_Y() * tile_h + y_border + cam_y;
+    dstrect.y = GET_PTR_Y() * tile_h + y_bound + cam_y;
     if (
         dstrect.x + dstrect.w >= 0 &&
         dstrect.y + dstrect.h >= 0 &&
