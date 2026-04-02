@@ -42,6 +42,8 @@ SDL2_image.lib /SUBSYSTEM:WINDOWS
 
 ## Controls
 
+- **Left click** - select tile/track cell
+
 - **Right click drag** - camera panning
 
 - **Mouse wheel** - zoom
