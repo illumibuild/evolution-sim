@@ -1589,12 +1589,15 @@ void advance_instinct(void) {
                     } else {
                         DOC_EVENT(EVENT_MOVE_FROM_UP + direction);
                     }
-                    selected_tile->cell.energy = --tile->cell.energy;
                     selected_tile->cell.age = tile->cell.age;
+                    selected_tile->cell.energy = --tile->cell.energy;
                     selected_tile->cell.evolution_info = tile->cell.evolution_info;
-                    tile->cell.energy = 0;
                     tile->cell.age = 0;
+                    tile->cell.energy = 0;
                     tile->cell.evolution_info = 0;
+                    if (world.ptr == tile) {
+                        world.ptr = selected_tile;
+                    }
                     tile = selected_tile;
                     USE_EVOLUTION(EVOLUTION_MOTILITY);
                     if (is_synthesizing) {
@@ -1651,8 +1654,8 @@ void advance_reproduction(void) {
                     if (tile_selections[i]) {
                         USE_EVOLUTION(EVOLUTION_POLYDIVISION);
                         DOC_EVENT(EVENT_DIVISION_UP + i);
-                        adjacent_tiles[i]->cell.energy = tile->cell.energy;
                         adjacent_tiles[i]->cell.age = 0;
+                        adjacent_tiles[i]->cell.energy = tile->cell.energy;
                         for (uint8_t j = 0; j < EVOLUTION_COUNT; ++j) {
                             if (
                                 EVOLUTION(evolutions[j]) &&
@@ -1694,8 +1697,8 @@ void advance_reproduction(void) {
             if (selected_tile) {
                 DOC_EVENT(EVENT_DIVISION_UP + direction);
                 tile->cell.energy /= 2;
-                selected_tile->cell.energy = tile->cell.energy;
                 selected_tile->cell.age = 0;
+                selected_tile->cell.energy = tile->cell.energy;
                 for (uint8_t i = 0; i < EVOLUTION_COUNT; ++i) {
                     if (EVOLUTION(evolutions[i])) {
                         if (rng_rand() % 2 == 0) {
