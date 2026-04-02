@@ -1569,6 +1569,9 @@ void advance_living(void) {
             tile->cell.ongoing_evolution = NULL;
             tile->cell.ongoing_evolution_timescale_progress = 0;
             tile->cell.evolution_info = 0;
+            if (world.ptr == tile) {
+                world.ptr = NULL;
+            }
             DOC_EVENT(EVENT_DEATH);
         }
     }
