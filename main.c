@@ -22,7 +22,7 @@
 
 #define TITLE "evolution-sim"
 #define VERSION "v0.2.0 beta 3 preview"
-#define RELEASE_DATE "03/31/2026"
+#define RELEASE_DATE "04/02/2026"
 
 uint32_t rng_state, rng_seed;
 
@@ -71,7 +71,8 @@ struct nk_image icons[8];
 enum still_atlas_idx {
     STILL_TILE,
     STILL_CELL,
-    STILL_POINTER = 3
+    STILL_CURSOR,
+    STILL_POINTER
 };
 
 typedef uint8_t still_atlas_idx_t;
@@ -1849,6 +1850,47 @@ bool ux_generation(void) {
 #define DEFAULT_SPEED 2
 #define MAX_SPEED 4
 
+void ux_sim_helper_data(void) {
+    snprintf(
+        GUI_TEXT_REPORT_POINTER_POS.buffer,
+        GUI_TEXT_REPORT_POINTER_POS.max + 1,
+        "XY: %u, %u",
+        (uint32_t)GET_PTR_X(),
+        (uint32_t)GET_PTR_Y()
+    );
+    snprintf(
+        GUI_TEXT_REPORT_CURR_TILE_ENERGY.buffer,
+        GUI_TEXT_REPORT_CURR_TILE_ENERGY.max + 1,
+        "Tile energy: %u",
+        (uint32_t)world.ptr->energy
+    );
+    if (world.ptr->cell.energy != 0) {
+        snprintf(
+            GUI_TEXT_REPORT_CURR_CELL_AGE.buffer,
+            GUI_TEXT_REPORT_CURR_CELL_AGE.max + 1,
+            "Cell age: %u",
+            (uint32_t)world.ptr->cell.age
+        );
+        snprintf(
+            GUI_TEXT_REPORT_CURR_CELL_ENERGY.buffer,
+            GUI_TEXT_REPORT_CURR_CELL_ENERGY.max + 1,
+            "Cell energy: %u",
+            (uint32_t)world.ptr->cell.energy
+        );
+    } else {
+        memset(
+            GUI_TEXT_REPORT_CURR_CELL_AGE.buffer,
+            '\0',
+            GUI_TEXT_REPORT_CURR_CELL_AGE.max
+        );
+        memset(
+            GUI_TEXT_REPORT_CURR_CELL_ENERGY.buffer,
+            '\0',
+            GUI_TEXT_REPORT_CURR_CELL_ENERGY.max
+        );
+    }
+}
+
 bool ux_sim(void) {
     static bool is_ready = false;
     static uint32_t last_gen = UINT32_MAX;
@@ -1901,6 +1943,9 @@ bool ux_sim(void) {
             "Live cells: %u",
             live_cell_count
         );
+        if (world.ptr) {
+            ux_sim_helper_data();
+        }
         last_gen = world.gen;
     }
     GUI_ICON_BUTTON_START.is_enabled = !auto_mode;
@@ -1943,7 +1988,7 @@ bool ux_sim(void) {
         const uint8_t new_zoom = zoom + (scroll_y < 0 ? -ZOOM_SPEED : ZOOM_SPEED);
         const double factor = (double)new_zoom / zoom;
         cam_x = (cam_x - mouse_x) * factor + mouse_x;
-        cam_y = (cam_y + y_bound - mouse_y) * factor - y_bound + mouse_y;
+        cam_y = (cam_y - mouse_y + y_bound) * factor + mouse_y - y_bound;
         zoom = new_zoom;
         snprintf(
             GUI_TEXT_ZOOM.buffer,
@@ -1953,16 +1998,12 @@ bool ux_sim(void) {
         );
     }
     const uint32_t curr_tick = SDL_GetTicks();
-    const int32_t
+    int32_t
         tile_w = TILE_WIDTH * zoom / 100,
-        tile_h = TILE_HEIGHT * zoom / 100,
+        tile_h = TILE_HEIGHT * zoom / 100;
+    const int32_t
         disp_x = mouse_x - cam_x,
         disp_y = mouse_y - y_bound - cam_y;
-    const bool is_mouse_within_disp =
-        disp_x >= 0 &&
-        disp_y >= 0 &&
-        disp_x < world.w * tile_w &&
-        disp_y < world.h * tile_h;
     if (GUI_ICON_BUTTON_STEP.is_pressed) {
         if (!has_acted && animation_tick == 0) {
             advance();
@@ -1979,6 +2020,8 @@ bool ux_sim(void) {
             cam_x = (cam_x - center_x) * factor + center_x;
             cam_y = (cam_y - center_y) * factor + center_y;
             zoom = new_zoom;
+            tile_w = TILE_WIDTH * zoom / 100;
+            tile_h = TILE_HEIGHT * zoom / 100;
             snprintf(
                 GUI_TEXT_ZOOM.buffer,
                 GUI_TEXT_ZOOM.max + 1,
@@ -1997,6 +2040,8 @@ bool ux_sim(void) {
             cam_x = (cam_x - center_x) * factor + center_x;
             cam_y = (cam_y - center_y) * factor + center_y;
             zoom = new_zoom;
+            tile_w = TILE_WIDTH * zoom / 100;
+            tile_h = TILE_HEIGHT * zoom / 100;
             snprintf(
                 GUI_TEXT_ZOOM.buffer,
                 GUI_TEXT_ZOOM.max + 1,
@@ -2027,13 +2072,16 @@ bool ux_sim(void) {
             );
         }
         has_acted = true;
-    } else if (
-        is_mouse_within_bounds &&
-        (mouse_state & SDL_BUTTON(SDL_BUTTON_LEFT))
-    ) {
-        if (!has_acted) {
-            if (is_mouse_within_disp) {
+    } else if (mouse_state & SDL_BUTTON(SDL_BUTTON_LEFT)) {
+        if (!has_acted && is_mouse_within_bounds) {
+            if (
+                disp_x >= 0 &&
+                disp_y >= 0 &&
+                disp_x < world.w * tile_w &&
+                disp_y < world.h * tile_h
+            ) {
                 world.ptr = &TILE_AT(disp_x / tile_w, disp_y / tile_h);
+                ux_sim_helper_data();
                 has_cleared = false;
             } else {
                 world.ptr = NULL;
@@ -2043,46 +2091,7 @@ bool ux_sim(void) {
     } else {
         has_acted = false;
     }
-    if (world.ptr) {
-        snprintf(
-            GUI_TEXT_REPORT_POINTER_POS.buffer,
-            GUI_TEXT_REPORT_POINTER_POS.max + 1,
-            "XY: %u, %u",
-            (uint32_t)GET_PTR_X(),
-            (uint32_t)GET_PTR_Y()
-        );
-        snprintf(
-            GUI_TEXT_REPORT_CURR_TILE_ENERGY.buffer,
-            GUI_TEXT_REPORT_CURR_TILE_ENERGY.max + 1,
-            "Tile energy: %u",
-            (uint32_t)world.ptr->energy
-        );
-        if (world.ptr->cell.energy != 0) {
-            snprintf(
-                GUI_TEXT_REPORT_CURR_CELL_AGE.buffer,
-                GUI_TEXT_REPORT_CURR_CELL_AGE.max + 1,
-                "Cell age: %u",
-                (uint32_t)world.ptr->cell.age
-            );
-            snprintf(
-                GUI_TEXT_REPORT_CURR_CELL_ENERGY.buffer,
-                GUI_TEXT_REPORT_CURR_CELL_ENERGY.max + 1,
-                "Cell energy: %u",
-                (uint32_t)world.ptr->cell.energy
-            );
-        } else {
-            memset(
-                GUI_TEXT_REPORT_CURR_CELL_AGE.buffer,
-                '\0',
-                GUI_TEXT_REPORT_CURR_CELL_AGE.max
-            );
-            memset(
-                GUI_TEXT_REPORT_CURR_CELL_ENERGY.buffer,
-                '\0',
-                GUI_TEXT_REPORT_CURR_CELL_ENERGY.max
-            );
-        }
-    } else if (!has_cleared) {
+    if (!world.ptr && !has_cleared) {
         memset(
             GUI_TEXT_REPORT_POINTER_POS.buffer,
             '\0',
@@ -2230,6 +2239,30 @@ bool ux_sim(void) {
                         }
                     }
                 }
+            }
+        }
+    }
+    if (
+        is_mouse_within_bounds &&
+        disp_x >= 0 &&
+        disp_y >= 0 &&
+        disp_x < world.w * tile_w &&
+        disp_y < world.h * tile_h
+    ) {
+        dstrect.x = disp_x / tile_w * tile_w + cam_x;
+        dstrect.y = disp_y / tile_h * tile_h + y_bound + cam_y;
+        if (
+            dstrect.x + dstrect.w >= 0 &&
+            dstrect.y + dstrect.h >= 0 &&
+            dstrect.x < window_w &&
+            dstrect.y < window_h
+        ) {
+            select_still_frame(
+                &srcrect,
+                STILL_CURSOR
+            );
+            if (SDL_RenderCopy(renderer, texture, &srcrect, &dstrect) != 0) {
+                return false;
             }
         }
     }
