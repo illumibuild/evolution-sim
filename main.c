@@ -320,6 +320,8 @@ struct nk_rect
     text_report_curr_tile_energy_pos(void),
     text_report_curr_cell_age_pos(void),
     text_report_curr_cell_energy_pos(void),
+    text_report_curr_cell_evolution_info_pos(void),
+    text_report_curr_cell_ongoing_evolution_pos(void),
     text_report_world_size_pos(void),
     text_report_seed_pos(void),
     text_report_gen_pos(void),
@@ -486,6 +488,28 @@ struct nk_rect text_report_curr_cell_energy_pos(void) {
         GUI_ELEMENT_COMMON_MARGIN,
         panel_controls_pos_rect.y + panel_controls_pos_rect.h +
         GUI_ELEMENT_COMMON_MARGIN + 4 * GUI_TEXT_ELEMENT_HEIGHT,
+        window_w - 2 * GUI_ELEMENT_COMMON_MARGIN,
+        GUI_TEXT_ELEMENT_HEIGHT
+    );
+}
+
+struct nk_rect text_report_curr_cell_evolution_info_pos(void) {
+    const struct nk_rect panel_controls_pos_rect = panel_controls_pos();
+    return nk_rect(
+        GUI_ELEMENT_COMMON_MARGIN,
+        panel_controls_pos_rect.y + panel_controls_pos_rect.h +
+        GUI_ELEMENT_COMMON_MARGIN + 6 * GUI_TEXT_ELEMENT_HEIGHT,
+        window_w - 2 * GUI_ELEMENT_COMMON_MARGIN,
+        GUI_TEXT_ELEMENT_HEIGHT
+    );
+}
+
+struct nk_rect text_report_curr_cell_ongoing_evolution_pos(void) {
+    const struct nk_rect panel_controls_pos_rect = panel_controls_pos();
+    return nk_rect(
+        GUI_ELEMENT_COMMON_MARGIN,
+        panel_controls_pos_rect.y + panel_controls_pos_rect.h +
+        GUI_ELEMENT_COMMON_MARGIN + 8 * GUI_TEXT_ELEMENT_HEIGHT,
         window_w - 2 * GUI_ELEMENT_COMMON_MARGIN,
         GUI_TEXT_ELEMENT_HEIGHT
     );
@@ -939,6 +963,26 @@ union gui_element gui_elements[] = {
         .text_element = {
             .type = GUI_TEXT,
             .ux_state = UX_SIM,
+            .max = 62,
+            .alignment = NK_TEXT_ALIGN_LEFT,
+            .buffer = NULL,
+            .pos = text_report_curr_cell_evolution_info_pos
+        }
+    },
+    {
+        .text_element = {
+            .type = GUI_TEXT,
+            .ux_state = UX_SIM,
+            .max = 42,
+            .alignment = NK_TEXT_ALIGN_LEFT,
+            .buffer = NULL,
+            .pos = text_report_curr_cell_ongoing_evolution_pos
+        }
+    },
+    {
+        .text_element = {
+            .type = GUI_TEXT,
+            .ux_state = UX_SIM,
             .max = 56,
             .alignment = NK_TEXT_ALIGN_LEFT,
             .buffer = NULL,
@@ -997,36 +1041,38 @@ union gui_element gui_elements[] = {
 
 #define GUI_ELEMENT_COUNT sizeof(gui_elements) / sizeof(union gui_element)
 
-#define GUI_LABEL_WORLD_SIZE             gui_elements[ 0].label_element
-#define GUI_LABEL_SEED                   gui_elements[ 1].label_element
-#define GUI_LABEL_MUL                    gui_elements[ 2].label_element
-#define GUI_INPUT_WORLD_WIDTH            gui_elements[ 3].input_element
-#define GUI_INPUT_WORLD_HEIGHT           gui_elements[ 4].input_element
-#define GUI_INPUT_SEED                   gui_elements[ 5].input_element
-#define GUI_BUTTON_GENERATE              gui_elements[ 6].button_element
-#define GUI_TEXT_ERROR                   gui_elements[ 7].text_element
-#define GUI_TEXT_GENERATING              gui_elements[ 8].text_element
-#define GUI_PANEL_CONTROLS               gui_elements[ 9].panel_element
-#define GUI_ICON_BUTTON_START            gui_elements[10].icon_button_element
-#define GUI_ICON_BUTTON_STOP             gui_elements[11].icon_button_element
-#define GUI_ICON_BUTTON_STEP             gui_elements[12].icon_button_element
-#define GUI_ICON_BUTTON_ZOOM_IN          gui_elements[13].icon_button_element
-#define GUI_ICON_BUTTON_ZOOM_OUT         gui_elements[14].icon_button_element
-#define GUI_TEXT_ZOOM                    gui_elements[15].text_element
-#define GUI_ICON_BUTTON_SPEED_UP         gui_elements[16].icon_button_element
-#define GUI_ICON_BUTTON_SLOW_DOWN        gui_elements[17].icon_button_element
-#define GUI_TEXT_SPEED                   gui_elements[18].text_element
-#define GUI_ICON_BUTTON_QUIT             gui_elements[19].icon_button_element
-#define GUI_TEXT_REPORT_POINTER_POS      gui_elements[20].text_element
-#define GUI_TEXT_REPORT_CURR_TILE_ENERGY gui_elements[21].text_element
-#define GUI_TEXT_REPORT_CURR_CELL_AGE    gui_elements[22].text_element
-#define GUI_TEXT_REPORT_CURR_CELL_ENERGY gui_elements[23].text_element
-#define GUI_TEXT_REPORT_WORLD_SIZE       gui_elements[24].text_element
-#define GUI_TEXT_REPORT_SEED             gui_elements[25].text_element
-#define GUI_TEXT_REPORT_GEN              gui_elements[26].text_element
-#define GUI_TEXT_REPORT_LIVE_CELL_COUNT  gui_elements[27].text_element
-#define GUI_LABEL_VERSION                gui_elements[28].text_element
-#define GUI_LABEL_RELEASE_DATE           gui_elements[29].text_element
+#define GUI_LABEL_WORLD_SIZE                        gui_elements[ 0].label_element
+#define GUI_LABEL_SEED                              gui_elements[ 1].label_element
+#define GUI_LABEL_MUL                               gui_elements[ 2].label_element
+#define GUI_INPUT_WORLD_WIDTH                       gui_elements[ 3].input_element
+#define GUI_INPUT_WORLD_HEIGHT                      gui_elements[ 4].input_element
+#define GUI_INPUT_SEED                              gui_elements[ 5].input_element
+#define GUI_BUTTON_GENERATE                         gui_elements[ 6].button_element
+#define GUI_TEXT_ERROR                              gui_elements[ 7].text_element
+#define GUI_TEXT_GENERATING                         gui_elements[ 8].text_element
+#define GUI_PANEL_CONTROLS                          gui_elements[ 9].panel_element
+#define GUI_ICON_BUTTON_START                       gui_elements[10].icon_button_element
+#define GUI_ICON_BUTTON_STOP                        gui_elements[11].icon_button_element
+#define GUI_ICON_BUTTON_STEP                        gui_elements[12].icon_button_element
+#define GUI_ICON_BUTTON_ZOOM_IN                     gui_elements[13].icon_button_element
+#define GUI_ICON_BUTTON_ZOOM_OUT                    gui_elements[14].icon_button_element
+#define GUI_TEXT_ZOOM                               gui_elements[15].text_element
+#define GUI_ICON_BUTTON_SPEED_UP                    gui_elements[16].icon_button_element
+#define GUI_ICON_BUTTON_SLOW_DOWN                   gui_elements[17].icon_button_element
+#define GUI_TEXT_SPEED                              gui_elements[18].text_element
+#define GUI_ICON_BUTTON_QUIT                        gui_elements[19].icon_button_element
+#define GUI_TEXT_REPORT_POINTER_POS                 gui_elements[20].text_element
+#define GUI_TEXT_REPORT_CURR_TILE_ENERGY            gui_elements[21].text_element
+#define GUI_TEXT_REPORT_CURR_CELL_AGE               gui_elements[22].text_element
+#define GUI_TEXT_REPORT_CURR_CELL_ENERGY            gui_elements[23].text_element
+#define GUI_TEXT_REPORT_CURR_CELL_EVOLUTION_INFO    gui_elements[24].text_element
+#define GUI_TEXT_REPORT_CURR_CELL_ONGOING_EVOLUTION gui_elements[25].text_element
+#define GUI_TEXT_REPORT_WORLD_SIZE                  gui_elements[26].text_element
+#define GUI_TEXT_REPORT_SEED                        gui_elements[27].text_element
+#define GUI_TEXT_REPORT_GEN                         gui_elements[28].text_element
+#define GUI_TEXT_REPORT_LIVE_CELL_COUNT             gui_elements[29].text_element
+#define GUI_LABEL_VERSION                           gui_elements[30].label_element
+#define GUI_LABEL_RELEASE_DATE                      gui_elements[31].label_element
 
 bool start_gui(void) {
     for (uint8_t i = 0; i < GUI_ELEMENT_COUNT; ++i) {
@@ -1880,6 +1926,49 @@ void ux_sim_helper_data(void) {
             "Cell energy: %u",
             (uint32_t)world.ptr->cell.energy
         );
+        if (world.ptr->cell.evolution_info) {
+            uint16_t offset = snprintf(
+                GUI_TEXT_REPORT_CURR_CELL_EVOLUTION_INFO.buffer,
+                GUI_TEXT_REPORT_CURR_CELL_EVOLUTION_INFO.max + 1,
+                "Undergone evolutions: "
+            );
+            struct tile *tile = world.ptr;
+            bool requires_comma = false;
+            for (uint8_t i = 0; i < EVOLUTION_COUNT; ++i) {
+                if (EVOLUTION(evolutions[i])) {
+                    offset += snprintf(
+                        GUI_TEXT_REPORT_CURR_CELL_EVOLUTION_INFO.buffer + offset,
+                        GUI_TEXT_REPORT_CURR_CELL_EVOLUTION_INFO.max + 1 - offset,
+                        "%s%s",
+                        requires_comma ? ", " : "",
+                        evolutions[i].name
+                    );
+                    requires_comma = true;
+                }
+            }
+        } else {
+            memset(
+                GUI_TEXT_REPORT_CURR_CELL_EVOLUTION_INFO.buffer,
+                '\0',
+                GUI_TEXT_REPORT_CURR_CELL_EVOLUTION_INFO.max
+            );
+        }
+        if (world.ptr->cell.ongoing_evolution) {
+            snprintf(
+                GUI_TEXT_REPORT_CURR_CELL_ONGOING_EVOLUTION.buffer,
+                GUI_TEXT_REPORT_CURR_CELL_ONGOING_EVOLUTION.max + 1,
+                "Currently evolving: %s (%u%%)",
+                world.ptr->cell.ongoing_evolution->name,
+                100 * world.ptr->cell.ongoing_evolution_timescale_progress /
+                world.ptr->cell.ongoing_evolution->timescale
+            );
+        } else {
+            memset(
+                GUI_TEXT_REPORT_CURR_CELL_ONGOING_EVOLUTION.buffer,
+                '\0',
+                GUI_TEXT_REPORT_CURR_CELL_ONGOING_EVOLUTION.max
+            );
+        }
     } else {
         memset(
             GUI_TEXT_REPORT_CURR_CELL_AGE.buffer,
@@ -1890,6 +1979,16 @@ void ux_sim_helper_data(void) {
             GUI_TEXT_REPORT_CURR_CELL_ENERGY.buffer,
             '\0',
             GUI_TEXT_REPORT_CURR_CELL_ENERGY.max
+        );
+        memset(
+            GUI_TEXT_REPORT_CURR_CELL_EVOLUTION_INFO.buffer,
+            '\0',
+            GUI_TEXT_REPORT_CURR_CELL_EVOLUTION_INFO.max
+        );
+        memset(
+            GUI_TEXT_REPORT_CURR_CELL_ONGOING_EVOLUTION.buffer,
+            '\0',
+            GUI_TEXT_REPORT_CURR_CELL_ONGOING_EVOLUTION.max
         );
     }
 }
@@ -2114,6 +2213,16 @@ bool ux_sim(void) {
             GUI_TEXT_REPORT_CURR_CELL_ENERGY.buffer,
             '\0',
             GUI_TEXT_REPORT_CURR_CELL_ENERGY.max
+        );
+        memset(
+            GUI_TEXT_REPORT_CURR_CELL_EVOLUTION_INFO.buffer,
+            '\0',
+            GUI_TEXT_REPORT_CURR_CELL_EVOLUTION_INFO.max
+        );
+        memset(
+            GUI_TEXT_REPORT_CURR_CELL_ONGOING_EVOLUTION.buffer,
+            '\0',
+            GUI_TEXT_REPORT_CURR_CELL_ONGOING_EVOLUTION.max
         );
         has_cleared = true;
     }
