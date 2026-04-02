@@ -187,3 +187,19 @@ All notable changes to this project will be documented here.
 - Optimized animation frame calculation.
 
 - Plus many other small corrections...
+
+### v0.2.0 beta 3 - 04/02/2026
+
+#### Added:
+
+- Added evolution info and ongoing evolution display for cells.
+
+- Added a semi-transparent pointer that now follows the mouse instead of the old pointer, which now works differently.
+
+#### Changed:
+
+- Reworked the pointer so that it no longer follows the mouse cursor, but is instead fixed onto a tile using left click, and will follow the cell on that tile until it dies, allowing easier tracking.
+
+#### Fixed:
+
+- Many small corrections...
