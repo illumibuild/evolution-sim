@@ -168,12 +168,14 @@ It currently lacks a mipmap system, so zooming out too far causes performance is
 
 ## Future plans
 
-- Better rendering optimization and mipmap implementation
-
-- Intervention, control and more simulation parameters
-
 - More evolutions, as well as mutations, cell clusters, and generally more complex cell behavior
 
-- Option to save simulation state
+- More simulation parameters
+
+- User intervention and control
+
+- Option to load and save simulation state
 
 - Cleaner GUI and a custom GUI implementation
+
+- Better rendering optimization and mipmap implementation
