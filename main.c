@@ -991,8 +991,8 @@ union gui_element gui_elements[] = {
     },
     {
         .text_element = {
-            .ux_state = UX_SIM,
             .type = GUI_TEXT,
+            .ux_state = UX_SIM,
             .max = 26,
             .alignment = NK_TEXT_ALIGN_LEFT,
             .buffer = NULL,
@@ -1001,8 +1001,8 @@ union gui_element gui_elements[] = {
     },
     {
         .text_element = {
-            .ux_state = UX_SIM,
             .type = GUI_TEXT,
+            .ux_state = UX_SIM,
             .max = 32,
             .alignment = NK_TEXT_ALIGN_LEFT,
             .buffer = NULL,
@@ -1011,8 +1011,8 @@ union gui_element gui_elements[] = {
     },
     {
         .text_element = {
-            .ux_state = UX_SIM,
             .type = GUI_TEXT,
+            .ux_state = UX_SIM,
             .max = 32,
             .alignment = NK_TEXT_ALIGN_LEFT,
             .buffer = NULL,

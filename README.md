@@ -2,6 +2,12 @@
 
 A simple simulation using a cellular automaton system designed to explore evolution caused by emergent behaviors.
 
+![](showcase/1775247602.gif)
+
+![](showcase/1775247942.gif)
+
+![](showcase/1775248153.gif)
+
 ## Features
 
 - Tile-based world with cells representing **organisms**
