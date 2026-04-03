@@ -21,7 +21,7 @@
 #include <nuklear_sdl_renderer.h>
 
 #define TITLE "evolution-sim"
-#define VERSION "v0.2.0 beta 4"
+#define VERSION "v0.2.0 beta 5 preview"
 #define RELEASE_DATE "04/03/2026"
 
 uint32_t rng_state, rng_seed;
@@ -2170,7 +2170,7 @@ bool ux_sim(void) {
     if (auto_mode && animation_tick == 0) {
         advance();
         animation_tick = curr_tick;
-    } else if (animation_tick != 0 && curr_tick > animation_tick + animation_ms) {
+    } else if (animation_tick != 0 && curr_tick >= animation_tick + animation_ms) {
         animation_tick = 0;
     }
     if (world.gen != last_gen) {
