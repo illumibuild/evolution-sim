@@ -170,11 +170,9 @@ It currently lacks a mipmap system, so zooming out too far causes performance is
 
 - better rendering optimization and mipmap implementation
 
-- more control and more simulation parameters
+- intervention, control and more simulation parameters
 
-- evolution paths and more sophisticated and complex cell behavior, including movement, parasitism, symbiosis, self-sustenance and energy production, etc.
-
-- mutations and cooperation between cells with the same mutation, as well as aggression towards cells lacking the mutation
+- more evolutions, as well as mutations, cell clusters, and generally more complex cell behavior
 
 - option to save simulation state
 
