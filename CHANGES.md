@@ -203,3 +203,5 @@ All notable changes to this project will be documented here.
 #### Fixed:
 
 - Many small corrections...
+
+### v0.2.0 beta 4 - 04/03/2026
