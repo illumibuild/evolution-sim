@@ -1616,7 +1616,7 @@ void advance_instinct(void) {
                 tile->cell.energy >= 3
             ) {
                 struct tile *selected_tile = tile;
-                struct tile *adjacent_tiles[4]= {
+                struct tile *adjacent_tiles[4] = {
                     y > 0 ? &TILE_AT(x, y - 1) : NULL,
                     y < world.h - 1 ? &TILE_AT(x, y + 1) : NULL,
                     x > 0 ? &TILE_AT(x - 1, y) : NULL,
@@ -1687,12 +1687,7 @@ void advance_reproduction(void) {
                 x < world.w - 1 ? &TILE_AT(x + 1, y) : NULL
             };
             if (EVOLUTION(EVOLUTION_POLYDIVISION)) {
-                bool tile_selections[4] = {
-                    false,
-                    false,
-                    false,
-                    false
-                };
+                bool tile_selections[4] = {0};
                 uint8_t tiles_selected = 0;
                 for (uint8_t i = 0; i < 4; ++i) {
                     if (
@@ -1817,7 +1812,6 @@ void advance(void) {
     advance_instinct();
     advance_reproduction();
     advance_evolution();
-    return;
 }
 
 int32_t scroll_x, scroll_y;
