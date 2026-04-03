@@ -14,9 +14,9 @@ A simple simulation using a cellular automaton system designed to explore evolut
 
 - Each cell has **age** and **energy**
 
-- Simple rules for **energy harvesting**, **reproduction** and **death**
+- Simple rules for **energy harvesting**, **evolution**, **reproduction** and **death**
 
-- Visualizes evolution over time with **step-by-step updates**
+- Visualized evolution over time with **step-by-step updates**
 
 ## Getting started
 
@@ -76,17 +76,17 @@ Every 10 generations, the energy of every tile in the world increases by 1.
 
 If a live cell is on a tile with **available energy**, it will **harvest** up to 5 energy, with the harvested amount of energy being **based on the following rules**:
 
-- if the available energy is **100 or greater**, the cell harvests **3 energy**
+- if the available energy is **100 or greater**, the cell harvests **3 energy**;
 
-- otherwise, if the available energy is **50 or greater**, the cell harvests **2 energy**
+- otherwise, if the available energy is **50 or greater**, the cell harvests **2 energy**;
 
-- otherwise, the cell harvests **1 energy**
+- otherwise, the cell harvests **1 energy**;
 
-- if the cell is **at least 40 generations old**, it harvests an additional **2 energy**
+- if the cell is **at least 40 generations old**, it harvests an additional **2 energy**;
 
-- otherwise, if the cell is **at least 20 generations old**, it harvests an additional **1 energy**
+- otherwise, if the cell is **at least 20 generations old**, it harvests an additional **1 energy**;
 
-- otherwise, the cell **doesn't harvest any additional energy**
+- otherwise, the cell **doesn't harvest any additional energy**.
 
 Of course, the actual harvested amount is limited by how much energy is **available**, and a cell **can't harvest more energy than the tile below it can provide**.
 
@@ -168,12 +168,12 @@ It currently lacks a mipmap system, so zooming out too far causes performance is
 
 ## Future plans
 
-- better rendering optimization and mipmap implementation
+- Better rendering optimization and mipmap implementation
 
-- intervention, control and more simulation parameters
+- Intervention, control and more simulation parameters
 
-- more evolutions, as well as mutations, cell clusters, and generally more complex cell behavior
+- More evolutions, as well as mutations, cell clusters, and generally more complex cell behavior
 
-- option to save simulation state
+- Option to save simulation state
 
-- cleaner GUI and a custom GUI implementation
+- Cleaner GUI and a custom GUI implementation
