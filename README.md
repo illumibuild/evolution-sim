@@ -176,4 +176,4 @@ It currently lacks a mipmap system, so zooming out too far causes performance is
 
 - option to save simulation state
 
-- cleaner UI
+- cleaner GUI and a custom GUI implementation
