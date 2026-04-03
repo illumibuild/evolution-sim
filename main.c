@@ -21,8 +21,8 @@
 #include <nuklear_sdl_renderer.h>
 
 #define TITLE "evolution-sim"
-#define VERSION "v0.2.0 beta 3"
-#define RELEASE_DATE "04/02/2026"
+#define VERSION "v0.2.0 beta 4 preview"
+#define RELEASE_DATE "04/03/2026"
 
 uint32_t rng_state, rng_seed;
 
@@ -124,13 +124,13 @@ void select_animation_frame(
     uint32_t tick_diff,
     uint8_t speed
 ) {
-    static uint32_t prev_tick_diff = UINT32_MAX, frame, prev_speed = 0, spf;
-    if (speed != prev_speed) {
-        prev_speed = speed;
+    static uint32_t last_tick_diff = UINT32_MAX, frame, last_speed = 0, spf;
+    if (speed != last_speed) {
+        last_speed = speed;
         spf = (1000 / (ANIMATION_FPS * speed) + !!(1000 % (ANIMATION_FPS * speed)));
     }
-    if (tick_diff != prev_tick_diff) {
-        prev_tick_diff = tick_diff;
+    if (tick_diff != last_tick_diff) {
+        last_tick_diff = tick_diff;
         frame = tick_diff / spf;
     }
     srcrect->x = frame * TILE_WIDTH;
@@ -1308,6 +1308,12 @@ void end_gui(void) {
     }
 }
 
+#define GUI_TEXT_WRITE(gui_text_element_, fmt_, ...) \
+snprintf((gui_text_element_).buffer, (gui_text_element_).max + 1, (fmt_), ##__VA_ARGS__)
+
+#define GUI_TEXT_CLEAR(gui_text_element_) \
+memset((gui_text_element_).buffer, '\0', (gui_text_element_).max)
+
 struct evolution {
     const char *name;
     uint32_t eligibility, cost, timescale;
@@ -1850,9 +1856,8 @@ bool ux_creation(void) {
             sizeof(struct tile)
         );
         if (!world.tilemap) {
-            snprintf(
-                GUI_TEXT_ERROR.buffer,
-                GUI_TEXT_ERROR.max + 1,
+            GUI_TEXT_WRITE(
+                GUI_TEXT_ERROR,
                 "Out of memory! Try making a smaller world!"
             );
             return true;
@@ -1861,9 +1866,8 @@ bool ux_creation(void) {
         world.w = potential_w;
         world.h = potential_h;
         ux_state = UX_GENERATION;
-        snprintf(
-            GUI_TEXT_GENERATING.buffer,
-            GUI_TEXT_GENERATING.max + 1,
+        GUI_TEXT_WRITE(
+            GUI_TEXT_GENERATING,
             "Generating world... 0%%"
         );
     }
@@ -1872,9 +1876,8 @@ bool ux_creation(void) {
 
 bool ux_generation(void) {
     bool done = generate();
-    snprintf(
-        GUI_TEXT_GENERATING.buffer,
-        GUI_TEXT_GENERATING.max + 1,
+    GUI_TEXT_WRITE(
+        GUI_TEXT_GENERATING,
         "Generating world... %u%%",
         (uint32_t)((float)tiles_generated / ((uint32_t)world.w * world.h) * 100)
     );
@@ -1892,40 +1895,26 @@ bool ux_generation(void) {
     return true;
 }
 
-#define ZOOM_SPEED 5
-
-#define MIN_ZOOM 5
-#define DEFAULT_ZOOM 25
-#define MAX_ZOOM 100
-
-#define MIN_SPEED 1
-#define DEFAULT_SPEED 2
-#define MAX_SPEED 4
-
-void ux_sim_helper_data(void) {
-    snprintf(
-        GUI_TEXT_REPORT_POINTER_POS.buffer,
-        GUI_TEXT_REPORT_POINTER_POS.max + 1,
+void ux_sim_helper_pointer(void) {
+    GUI_TEXT_WRITE(
+        GUI_TEXT_REPORT_POINTER_POS,
         "XY: %u, %u",
         (uint32_t)GET_PTR_X(),
         (uint32_t)GET_PTR_Y()
     );
-    snprintf(
-        GUI_TEXT_REPORT_CURR_TILE_ENERGY.buffer,
-        GUI_TEXT_REPORT_CURR_TILE_ENERGY.max + 1,
+    GUI_TEXT_WRITE(
+        GUI_TEXT_REPORT_CURR_TILE_ENERGY,
         "Tile energy: %u",
         (uint32_t)world.ptr->energy
     );
     if (world.ptr->cell.energy != 0) {
-        snprintf(
-            GUI_TEXT_REPORT_CURR_CELL_AGE.buffer,
-            GUI_TEXT_REPORT_CURR_CELL_AGE.max + 1,
+        GUI_TEXT_WRITE(
+            GUI_TEXT_REPORT_CURR_CELL_AGE,
             "Cell age: %u",
             (uint32_t)world.ptr->cell.age
         );
-        snprintf(
-            GUI_TEXT_REPORT_CURR_CELL_ENERGY.buffer,
-            GUI_TEXT_REPORT_CURR_CELL_ENERGY.max + 1,
+        GUI_TEXT_WRITE(
+            GUI_TEXT_REPORT_CURR_CELL_ENERGY,
             "Cell energy: %u",
             (uint32_t)world.ptr->cell.energy
         );
@@ -1950,108 +1939,79 @@ void ux_sim_helper_data(void) {
                 }
             }
         } else {
-            memset(
-                GUI_TEXT_REPORT_CURR_CELL_EVOLUTION_INFO.buffer,
-                '\0',
-                GUI_TEXT_REPORT_CURR_CELL_EVOLUTION_INFO.max
-            );
+            GUI_TEXT_CLEAR(GUI_TEXT_REPORT_CURR_CELL_EVOLUTION_INFO);
         }
         if (world.ptr->cell.ongoing_evolution) {
-            snprintf(
-                GUI_TEXT_REPORT_CURR_CELL_ONGOING_EVOLUTION.buffer,
-                GUI_TEXT_REPORT_CURR_CELL_ONGOING_EVOLUTION.max + 1,
+            GUI_TEXT_WRITE(
+                GUI_TEXT_REPORT_CURR_CELL_ONGOING_EVOLUTION,
                 "Currently evolving: %s (%u%%)",
                 world.ptr->cell.ongoing_evolution->name,
                 100 * world.ptr->cell.ongoing_evolution_timescale_progress /
                 world.ptr->cell.ongoing_evolution->timescale
             );
         } else {
-            memset(
-                GUI_TEXT_REPORT_CURR_CELL_ONGOING_EVOLUTION.buffer,
-                '\0',
-                GUI_TEXT_REPORT_CURR_CELL_ONGOING_EVOLUTION.max
-            );
+            GUI_TEXT_CLEAR(GUI_TEXT_REPORT_CURR_CELL_ONGOING_EVOLUTION);
         }
     } else {
-        memset(
-            GUI_TEXT_REPORT_CURR_CELL_AGE.buffer,
-            '\0',
-            GUI_TEXT_REPORT_CURR_CELL_AGE.max
-        );
-        memset(
-            GUI_TEXT_REPORT_CURR_CELL_ENERGY.buffer,
-            '\0',
-            GUI_TEXT_REPORT_CURR_CELL_ENERGY.max
-        );
-        memset(
-            GUI_TEXT_REPORT_CURR_CELL_EVOLUTION_INFO.buffer,
-            '\0',
-            GUI_TEXT_REPORT_CURR_CELL_EVOLUTION_INFO.max
-        );
-        memset(
-            GUI_TEXT_REPORT_CURR_CELL_ONGOING_EVOLUTION.buffer,
-            '\0',
-            GUI_TEXT_REPORT_CURR_CELL_ONGOING_EVOLUTION.max
-        );
+        GUI_TEXT_CLEAR(GUI_TEXT_REPORT_CURR_CELL_AGE);
+        GUI_TEXT_CLEAR(GUI_TEXT_REPORT_CURR_CELL_ENERGY);
+        GUI_TEXT_CLEAR(GUI_TEXT_REPORT_CURR_CELL_EVOLUTION_INFO);
+        GUI_TEXT_CLEAR(GUI_TEXT_REPORT_CURR_CELL_ONGOING_EVOLUTION);
     }
 }
 
+#define ZOOM_SPEED 5
+
+#define MIN_ZOOM 5
+#define DEFAULT_ZOOM 25
+#define MAX_ZOOM 100
+
+#define MIN_SPEED 1
+#define DEFAULT_SPEED 2
+#define MAX_SPEED 4
+
+#define IS_VISIBLE \
+(dstrect.x + dstrect.w >= 0 && dstrect.y + dstrect.h >= y_bound && \
+dstrect.x < window_w && dstrect.y < window_h)
+
 bool ux_sim(void) {
     static bool is_ready = false;
-    static uint32_t last_gen = UINT32_MAX;
-    static uint8_t zoom = DEFAULT_ZOOM, speed = DEFAULT_SPEED;
-    static int32_t cam_x = 0, cam_y = 0, drag_x = 0, drag_y = 0;
-    static bool
-        is_dragging = false,
-        has_acted = true,
-        auto_mode = false,
-        has_cleared = true;
-    static uint32_t animation_tick = 0;
+    static uint32_t last_gen;
+    static uint8_t zoom, last_zoom, speed, last_speed;
+    static uint16_t animation_ms;
+    static int32_t cam_x, cam_y, drag_x, drag_y, tile_w, tile_h;
+    static bool is_dragging, has_acted, auto_mode, has_cleared;
+    static uint32_t animation_tick;
     if (!is_ready) {
-        snprintf(
-            GUI_TEXT_ZOOM.buffer,
-            GUI_TEXT_ZOOM.max + 1,
-            "%u%%",
-            (uint32_t)DEFAULT_ZOOM
-        );
-        snprintf(
-            GUI_TEXT_SPEED.buffer,
-            GUI_TEXT_SPEED.max + 1,
-            "%ux",
-            (uint32_t)DEFAULT_SPEED
-        );
-        snprintf(
-            GUI_TEXT_REPORT_WORLD_SIZE.buffer,
-            GUI_TEXT_REPORT_WORLD_SIZE.max + 1,
+        last_gen = UINT32_MAX;
+        zoom = DEFAULT_ZOOM;
+        last_zoom = 0;
+        speed = DEFAULT_SPEED;
+        last_speed = 0;
+        animation_ms = ANIMATION_MS / DEFAULT_SPEED;
+        cam_x = 0;
+        cam_y = 0;
+        drag_x = 0;
+        drag_y = 0;
+        tile_w = TILE_WIDTH * DEFAULT_ZOOM / 100;
+        tile_h = TILE_HEIGHT * DEFAULT_ZOOM / 100;
+        is_dragging = false;
+        has_acted = true;
+        auto_mode = false;
+        has_cleared = true;
+        animation_tick = 0;
+        GUI_TEXT_WRITE(
+            GUI_TEXT_REPORT_WORLD_SIZE,
             "World size: %ux%u",
             world.w,
             world.h
         );
-        snprintf(
-            GUI_TEXT_REPORT_SEED.buffer,
-            GUI_TEXT_REPORT_SEED.max + 1,
+        GUI_TEXT_WRITE(
+            GUI_TEXT_REPORT_SEED,
             "Seed: %u",
             rng_seed
         );
         is_ready = true;
-    }
-    if (world.gen != last_gen) {
-        snprintf(
-            GUI_TEXT_REPORT_GEN.buffer,
-            GUI_TEXT_REPORT_GEN.max + 1,
-            "Generation: %u",
-            world.gen
-        );
-        snprintf(
-            GUI_TEXT_REPORT_LIVE_CELL_COUNT.buffer,
-            GUI_TEXT_REPORT_LIVE_CELL_COUNT.max + 1,
-            "Live cells: %u",
-            live_cell_count
-        );
-        if (world.ptr) {
-            ux_sim_helper_data();
-        }
-        last_gen = world.gen;
     }
     GUI_ICON_BUTTON_START.is_enabled = !auto_mode;
     GUI_ICON_BUTTON_STOP.is_enabled = auto_mode;
@@ -2063,14 +2023,6 @@ bool ux_sim(void) {
     GUI_ICON_BUTTON_QUIT.is_enabled = true;
     if (GUI_ICON_BUTTON_QUIT.is_pressed) {
         is_ready = false;
-        last_gen = UINT32_MAX;
-        zoom = DEFAULT_ZOOM;
-        speed = DEFAULT_SPEED;
-        cam_x = 0;
-        cam_y = 0;
-        is_dragging = false;
-        has_acted = true;
-        auto_mode = false;
         free(world.tilemap);
         world.tilemap = NULL;
         world.ptr = NULL;
@@ -2092,24 +2044,25 @@ bool ux_sim(void) {
     ) {
         const uint8_t new_zoom = zoom + (scroll_y < 0 ? -ZOOM_SPEED : ZOOM_SPEED);
         const double factor = (double)new_zoom / zoom;
+        zoom = new_zoom;
         cam_x = (cam_x - mouse_x) * factor + mouse_x;
         cam_y = (cam_y - mouse_y + y_bound) * factor + mouse_y - y_bound;
-        zoom = new_zoom;
-        snprintf(
-            GUI_TEXT_ZOOM.buffer,
-            GUI_TEXT_ZOOM.max + 1,
-            "%u%%",
-            (uint32_t)zoom
-        );
     }
     const uint32_t curr_tick = SDL_GetTicks();
-    int32_t
-        tile_w = TILE_WIDTH * zoom / 100,
-        tile_h = TILE_HEIGHT * zoom / 100;
     const int32_t
         disp_x = mouse_x - cam_x,
         disp_y = mouse_y - y_bound - cam_y;
-    if (GUI_ICON_BUTTON_STEP.is_pressed) {
+    if (GUI_ICON_BUTTON_START.is_pressed) {
+        if (!has_acted) {
+            auto_mode = true;
+        }
+        has_acted = true;
+    } else if (GUI_ICON_BUTTON_STOP.is_pressed) {
+        if (!has_acted) {
+            auto_mode = false;
+        }
+        has_acted = true;
+    } else if (GUI_ICON_BUTTON_STEP.is_pressed) {
         if (!has_acted && animation_tick == 0) {
             advance();
             animation_tick = curr_tick;
@@ -2119,62 +2072,34 @@ bool ux_sim(void) {
         if (!has_acted && zoom < MAX_ZOOM) {
             const uint8_t new_zoom = zoom + ZOOM_SPEED;
             const double factor = (double)new_zoom / zoom;
+            zoom = new_zoom;
             const int32_t
                 center_x = window_w / 2,
                 center_y = (window_h - y_bound) / 2;
             cam_x = (cam_x - center_x) * factor + center_x;
             cam_y = (cam_y - center_y) * factor + center_y;
-            zoom = new_zoom;
-            tile_w = TILE_WIDTH * zoom / 100;
-            tile_h = TILE_HEIGHT * zoom / 100;
-            snprintf(
-                GUI_TEXT_ZOOM.buffer,
-                GUI_TEXT_ZOOM.max + 1,
-                "%u%%",
-                (uint32_t)zoom
-            );
         }
         has_acted = true;
     } else if (GUI_ICON_BUTTON_ZOOM_OUT.is_pressed) {
         if (!has_acted && zoom > MIN_ZOOM) {
             const uint8_t new_zoom = zoom - ZOOM_SPEED;
             const double factor = (double)new_zoom / zoom;
+            zoom = new_zoom;
             const int32_t
                 center_x = window_w / 2,
                 center_y = (window_h - y_bound) / 2;
             cam_x = (cam_x - center_x) * factor + center_x;
             cam_y = (cam_y - center_y) * factor + center_y;
-            zoom = new_zoom;
-            tile_w = TILE_WIDTH * zoom / 100;
-            tile_h = TILE_HEIGHT * zoom / 100;
-            snprintf(
-                GUI_TEXT_ZOOM.buffer,
-                GUI_TEXT_ZOOM.max + 1,
-                "%u%%",
-                (uint32_t)zoom
-            );
         }
         has_acted = true;
     } else if (GUI_ICON_BUTTON_SPEED_UP.is_pressed) {
         if (!has_acted && speed < MAX_SPEED) {
             speed *= 2;
-            snprintf(
-                GUI_TEXT_SPEED.buffer,
-                GUI_TEXT_SPEED.max + 1,
-                "%ux",
-                (uint32_t)speed
-            );
         }
         has_acted = true;
     } else if (GUI_ICON_BUTTON_SLOW_DOWN.is_pressed) {
         if (!has_acted && speed > MIN_SPEED) {
             speed /= 2;
-            snprintf(
-                GUI_TEXT_SPEED.buffer,
-                GUI_TEXT_SPEED.max + 1,
-                "%ux",
-                (uint32_t)speed
-            );
         }
         has_acted = true;
     } else if (mouse_state & SDL_BUTTON(SDL_BUTTON_LEFT)) {
@@ -2186,7 +2111,7 @@ bool ux_sim(void) {
                 disp_y < world.h * tile_h
             ) {
                 world.ptr = &TILE_AT(disp_x / tile_w, disp_y / tile_h);
-                ux_sim_helper_data();
+                ux_sim_helper_pointer();
                 has_cleared = false;
             } else {
                 world.ptr = NULL;
@@ -2196,37 +2121,32 @@ bool ux_sim(void) {
     } else {
         has_acted = false;
     }
+    if (zoom != last_zoom) {
+        tile_w = TILE_WIDTH * zoom / 100;
+        tile_h = TILE_HEIGHT * zoom / 100;
+        GUI_TEXT_WRITE(
+            GUI_TEXT_ZOOM,
+            "%u%%",
+            (uint32_t)zoom
+        );
+        last_zoom = zoom;
+    }
+    if (speed != last_speed) {
+        animation_ms = ANIMATION_MS / speed;
+        GUI_TEXT_WRITE(
+            GUI_TEXT_SPEED,
+            "%ux",
+            (uint32_t)speed
+        );
+        last_speed = speed;
+    }
     if (!world.ptr && !has_cleared) {
-        memset(
-            GUI_TEXT_REPORT_POINTER_POS.buffer,
-            '\0',
-            GUI_TEXT_REPORT_POINTER_POS.max
-        );
-        memset(
-            GUI_TEXT_REPORT_CURR_TILE_ENERGY.buffer,
-            '\0',
-            GUI_TEXT_REPORT_CURR_TILE_ENERGY.max
-        );
-        memset(
-            GUI_TEXT_REPORT_CURR_CELL_AGE.buffer,
-            '\0',
-            GUI_TEXT_REPORT_CURR_CELL_AGE.max
-        );
-        memset(
-            GUI_TEXT_REPORT_CURR_CELL_ENERGY.buffer,
-            '\0',
-            GUI_TEXT_REPORT_CURR_CELL_ENERGY.max
-        );
-        memset(
-            GUI_TEXT_REPORT_CURR_CELL_EVOLUTION_INFO.buffer,
-            '\0',
-            GUI_TEXT_REPORT_CURR_CELL_EVOLUTION_INFO.max
-        );
-        memset(
-            GUI_TEXT_REPORT_CURR_CELL_ONGOING_EVOLUTION.buffer,
-            '\0',
-            GUI_TEXT_REPORT_CURR_CELL_ONGOING_EVOLUTION.max
-        );
+        GUI_TEXT_CLEAR(GUI_TEXT_REPORT_POINTER_POS);
+        GUI_TEXT_CLEAR(GUI_TEXT_REPORT_CURR_TILE_ENERGY);
+        GUI_TEXT_CLEAR(GUI_TEXT_REPORT_CURR_CELL_AGE);
+        GUI_TEXT_CLEAR(GUI_TEXT_REPORT_CURR_CELL_ENERGY);
+        GUI_TEXT_CLEAR(GUI_TEXT_REPORT_CURR_CELL_EVOLUTION_INFO);
+        GUI_TEXT_CLEAR(GUI_TEXT_REPORT_CURR_CELL_ONGOING_EVOLUTION);
         has_cleared = true;
     }
     if (
@@ -2247,16 +2167,27 @@ bool ux_sim(void) {
     } else {
         is_dragging = false;
     }
-    if (GUI_ICON_BUTTON_START.is_pressed) {
-        auto_mode = true;
-    } else if (GUI_ICON_BUTTON_STOP.is_pressed) {
-        auto_mode = false;
-    }
     if (auto_mode && animation_tick == 0) {
         advance();
         animation_tick = curr_tick;
-    } else if (animation_tick != 0 && curr_tick > animation_tick + ANIMATION_MS / speed) {
+    } else if (animation_tick != 0 && curr_tick > animation_tick + animation_ms) {
         animation_tick = 0;
+    }
+    if (world.gen != last_gen) {
+        GUI_TEXT_WRITE(
+            GUI_TEXT_REPORT_GEN,
+            "Generation: %u",
+            world.gen
+        );
+        GUI_TEXT_WRITE(
+            GUI_TEXT_REPORT_LIVE_CELL_COUNT,
+            "Live cells: %u",
+            live_cell_count
+        );
+        if (world.ptr) {
+            ux_sim_helper_pointer();
+        }
+        last_gen = world.gen;
     }
     if (
         window_w > world.w * tile_w ||
@@ -2288,12 +2219,7 @@ bool ux_sim(void) {
         for (uint16_t y = 0; y < world.h; ++y) {
             dstrect.x = (int32_t)x * tile_w + cam_x;
             dstrect.y = (int32_t)y * tile_h + y_bound + cam_y;
-            if (
-                dstrect.x + dstrect.w < 0 ||
-                dstrect.y + dstrect.h < 0 ||
-                dstrect.x >= window_w ||
-                dstrect.y >= window_h
-            ) {
+            if (!IS_VISIBLE) {
                 continue;
             }
             struct tile *tile = &TILE_AT(x, y);
@@ -2366,12 +2292,7 @@ bool ux_sim(void) {
     ) {
         dstrect.x = disp_x / tile_w * tile_w + cam_x;
         dstrect.y = disp_y / tile_h * tile_h + y_bound + cam_y;
-        if (
-            dstrect.x + dstrect.w >= 0 &&
-            dstrect.y + dstrect.h >= 0 &&
-            dstrect.x < window_w &&
-            dstrect.y < window_h
-        ) {
+        if (IS_VISIBLE) {
             select_still_frame(
                 &srcrect,
                 STILL_CURSOR
@@ -2386,12 +2307,7 @@ bool ux_sim(void) {
     }
     dstrect.x = GET_PTR_X() * tile_w + cam_x;
     dstrect.y = GET_PTR_Y() * tile_h + y_bound + cam_y;
-    if (
-        dstrect.x + dstrect.w >= 0 &&
-        dstrect.y + dstrect.h >= 0 &&
-        dstrect.x < window_w &&
-        dstrect.y < window_h
-    ) {
+    if (IS_VISIBLE) {
         select_still_frame(
             &srcrect,
             STILL_POINTER
