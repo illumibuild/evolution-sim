@@ -137,13 +137,13 @@ void select_animation_frame(
     srcrect->y = atlas_id * TILE_HEIGHT;
 }
 
-#define COLOR_BG             nk_rgba(0x8C, 0x00, 0x3F, 0xFF)
-#define COLOR_FG             nk_rgba(0xFF, 0x4B, 0x87, 0xFF)
-#define COLOR_INACTIVE       nk_rgba(0xB4, 0x00, 0x51, 0xFF)
-#define COLOR_ACTIVE         nk_rgba(0x78, 0x00, 0x36, 0xFF)
-#define COLOR_TRIGGER        nk_rgba(0x50, 0x00, 0x24, 0xFF)
-#define COLOR_BORDER         nk_rgba(0xC8, 0x00, 0x5A, 0xFF)
-#define COLOR_CUSTOM_QUALITY nk_rgba(0x39, 0xFF, 0x14, 0xFF)
+#define COLOR_BG            nk_rgba(0x8C, 0x00, 0x3F, 0xFF)
+#define COLOR_FG            nk_rgba(0xFF, 0x4B, 0x87, 0xFF)
+#define COLOR_INACTIVE      nk_rgba(0xB4, 0x00, 0x51, 0xFF)
+#define COLOR_ACTIVE        nk_rgba(0x78, 0x00, 0x36, 0xFF)
+#define COLOR_TRIGGER       nk_rgba(0x50, 0x00, 0x24, 0xFF)
+#define COLOR_BORDER        nk_rgba(0xC8, 0x00, 0x5A, 0xFF)
+#define COLOR_CUSTOM_QOL    nk_rgba(0x39, 0xFF, 0x14, 0xFF)
 
 struct nk_style_button style_button_disabled;
 
@@ -2226,9 +2226,9 @@ bool ux_sim(void) {
             if (
                 SDL_SetRenderDrawColor(
                     renderer,
-                    COLOR_CUSTOM_QUALITY.r,
-                    COLOR_CUSTOM_QUALITY.g,
-                    COLOR_CUSTOM_QUALITY.b,
+                    COLOR_CUSTOM_QOL.r,
+                    COLOR_CUSTOM_QOL.g,
+                    COLOR_CUSTOM_QOL.b,
                     0x02 * (
                         tile->energy <= GENERATION_TILE_INIT_ENERGY_CAP ?
                         tile->energy : GENERATION_TILE_INIT_ENERGY_CAP + 1
