@@ -205,3 +205,11 @@ All notable changes to this project will be documented here.
 - Many small corrections...
 
 ### v0.2.0 beta 4 - 04/03/2026
+
+### v0.2.0 beta 5 - 04/04/2026
+
+#### Fixed:
+
+- Fixed the flickering bug again, which wasn't fixed for speed 1x in the past.
+
+- Plus many other small corrections...
