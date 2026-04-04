@@ -1,6 +1,6 @@
 # Evolution Simulation Cellular Automaton
 
-A simple simulation using a cellular automaton system designed to explore evolution caused by emergent behaviors.
+A simulation using a cellular automaton system designed to explore evolution caused by emergent behaviors.
 
 ![](showcase/1775247602.gif)
 
