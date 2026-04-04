@@ -20,8 +20,8 @@
 #include <nuklear.h>
 #include <nuklear_sdl_renderer.h>
 
-#define TITLE "evolution-sim"
-#define VERSION "v0.2.0 beta 6 preview"
+#define TITLE        "evolution-sim"
+#define VERSION      "v0.2.0 beta 6 preview"
 #define RELEASE_DATE "04/04/2026"
 
 uint32_t rng_state, rng_seed;
@@ -38,9 +38,9 @@ uint32_t rng_rand(void) {
 }
 
 #define WINDOW_WIDTH  1280
-#define WINDOW_HEIGHT 720
+#define WINDOW_HEIGHT  720
 
-#define MIN_WINDOW_WIDTH 853
+#define MIN_WINDOW_WIDTH  853
 #define MIN_WINDOW_HEIGHT 480
 
 #define TILE_WIDTH  180
@@ -49,8 +49,8 @@ uint32_t rng_rand(void) {
 #define ICON_WIDTH  20
 #define ICON_HEIGHT 20
 
-#define ANIMATION_MS 500
-#define ANIMATION_FPS 8
+#define ANIMATION_MS  500
+#define ANIMATION_FPS   8
 
 #define FONT_SIZE 24
 
@@ -137,13 +137,13 @@ void select_animation_frame(
     srcrect->y = atlas_id * TILE_HEIGHT;
 }
 
-#define COLOR_BG            nk_rgba(0x8C, 0x00, 0x3F, 0xFF)
-#define COLOR_FG            nk_rgba(0xFF, 0x4B, 0x87, 0xFF)
-#define COLOR_INACTIVE      nk_rgba(0xB4, 0x00, 0x51, 0xFF)
-#define COLOR_ACTIVE        nk_rgba(0x78, 0x00, 0x36, 0xFF)
-#define COLOR_TRIGGER       nk_rgba(0x50, 0x00, 0x24, 0xFF)
-#define COLOR_BORDER        nk_rgba(0xC8, 0x00, 0x5A, 0xFF)
-#define COLOR_CUSTOM_QOL    nk_rgba(0x39, 0xFF, 0x14, 0xFF)
+#define COLOR_BG         nk_rgba(0x8C, 0x00, 0x3F, 0xFF)
+#define COLOR_FG         nk_rgba(0xFF, 0x4B, 0x87, 0xFF)
+#define COLOR_INACTIVE   nk_rgba(0xB4, 0x00, 0x51, 0xFF)
+#define COLOR_ACTIVE     nk_rgba(0x78, 0x00, 0x36, 0xFF)
+#define COLOR_TRIGGER    nk_rgba(0x50, 0x00, 0x24, 0xFF)
+#define COLOR_BORDER     nk_rgba(0xC8, 0x00, 0x5A, 0xFF)
+#define COLOR_CUSTOM_QOL nk_rgba(0x39, 0xFF, 0x14, 0xFF)
 
 struct nk_style_button style_button_disabled;
 
@@ -298,7 +298,7 @@ typedef uint8_t gui_element_type_t;
 
 #define GUI_BUTTON_ELEMENT_HEIGHT 40
 
-#define GUI_ICON_BUTTON_ELEMENT_WIDTH 30
+#define GUI_ICON_BUTTON_ELEMENT_WIDTH                             30
 #define GUI_ICON_BUTTON_ELEMENT_HEIGHT GUI_ICON_BUTTON_ELEMENT_WIDTH
 
 #define GUI_PANEL_ELEMENT_OUTLINE 2
@@ -1397,8 +1397,8 @@ enum ev {
 
 typedef uint8_t ev_t;
 
-#define FIRST_EVENT  EVENT_DEATH
-#define LAST_EVENT   EVENT_SYNTHESIZE_MOVE_FROM_RIGHT
+#define FIRST_EVENT EVENT_DEATH
+#define LAST_EVENT  EVENT_SYNTHESIZE_MOVE_FROM_RIGHT
 
 #define FIRST_EVENT_ANIMATION ANIMATION_DEATH
 
@@ -1433,7 +1433,7 @@ struct world world;
 #define GET_PTR_X() ((world.ptr - world.tilemap) % world.w)
 #define GET_PTR_Y() ((world.ptr - world.tilemap) / world.w)
 
-#define GENERATION_TILE_INIT_ENERGY_CAP 75
+#define GENERATION_TILE_INIT_ENERGY_CAP            75
 #define GENERATION_TILE_INIT_ENERGY_SUM (77 * 76 / 2)
 
 #define MAX_GENERATION_OPS_PER_TICK 1000000
@@ -1645,7 +1645,7 @@ void advance_instinct(void) {
                         DOC_EVENT(EVENT_MOVE_FROM_UP + direction);
                     }
                     selected_tile->cell.age = tile->cell.age;
-                    selected_tile->cell.energy = --tile->cell.energy;
+                    selected_tile->cell.energy = tile->cell.energy - 1;
                     selected_tile->cell.evolution_info = tile->cell.evolution_info;
                     tile->cell.age = 0;
                     tile->cell.energy = 0;
@@ -1681,9 +1681,9 @@ void advance_reproduction(void) {
                 continue;
             }
             struct tile *adjacent_tiles[4] = {
-                y > 0 ? &TILE_AT(x, y - 1) : NULL,
+                y > 0           ? &TILE_AT(x, y - 1) : NULL,
                 y < world.h - 1 ? &TILE_AT(x, y + 1) : NULL,
-                x > 0 ? &TILE_AT(x - 1, y) : NULL,
+                x > 0           ? &TILE_AT(x - 1, y) : NULL,
                 x < world.w - 1 ? &TILE_AT(x + 1, y) : NULL
             };
             if (EVOLUTION(EVOLUTION_POLYDIVISION)) {
@@ -1873,7 +1873,7 @@ bool ux_generation(void) {
     GUI_TEXT_WRITE(
         GUI_TEXT_GENERATING,
         "Generating world... %u%%",
-        (uint32_t)((float)tiles_generated / ((uint32_t)world.w * world.h) * 100)
+        (uint32_t)((double)tiles_generated / ((uint32_t)world.w * world.h) * 100)
     );
     if (done) {
         live_cell_count = 0;
@@ -1956,13 +1956,13 @@ void ux_sim_helper_pointer(void) {
 
 #define ZOOM_SPEED 5
 
-#define MIN_ZOOM 5
-#define DEFAULT_ZOOM 25
-#define MAX_ZOOM 100
+#define MIN_ZOOM       5
+#define DEFAULT_ZOOM  25
+#define MAX_ZOOM     100
 
-#define MIN_SPEED 1
+#define MIN_SPEED     1
 #define DEFAULT_SPEED 2
-#define MAX_SPEED 4
+#define MAX_SPEED     4
 
 #define IS_VISIBLE \
 (dstrect.x + dstrect.w >= 0 && dstrect.y + dstrect.h >= y_bound && \
