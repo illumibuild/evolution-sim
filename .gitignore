@@ -1,7 +1,6 @@
 /.vscode
 /extras
 /releases
+/bundle.bat
 /evolution-sim
 /Makefile
-/bundle.bat
-/bundle.sh
