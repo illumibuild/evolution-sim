@@ -213,3 +213,9 @@ All notable changes to this project will be documented here.
 - Fixed the flickering bug again, which wasn't fixed for speed 1x in the past.
 
 - Plus many other small corrections...
+
+### v0.2.0 beta 6 - 04/04/2026
+
+#### Added:
+
+- The pointer now deselects upon clicking the control panel.
