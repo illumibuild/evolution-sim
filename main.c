@@ -21,7 +21,7 @@
 #include <nuklear_sdl_renderer.h>
 
 #define TITLE "evolution-sim"
-#define VERSION "v0.2.0 beta 5"
+#define VERSION "v0.2.0 beta 6 preview"
 #define RELEASE_DATE "04/04/2026"
 
 uint32_t rng_state, rng_seed;
@@ -2097,8 +2097,9 @@ bool ux_sim(void) {
         }
         has_acted = true;
     } else if (mouse_state & SDL_BUTTON(SDL_BUTTON_LEFT)) {
-        if (!has_acted && is_mouse_within_bounds) {
+        if (!has_acted) {
             if (
+                is_mouse_within_bounds &&
                 disp_x >= 0 &&
                 disp_y >= 0 &&
                 disp_x < world.w * tile_w &&
