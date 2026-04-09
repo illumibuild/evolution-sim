@@ -33,14 +33,14 @@ A simulation using a cellular automaton system designed to explore evolution cau
 Linux (GCC):
 
 ```
-gcc -std=c17 -Wall -O2 main.c -o evolution-sim -I<SDL2 include path> -I<Nuklear include path> \
--L<lib path> -lSDL2 -lSDL2_image -lm
+g++ -std=c++23 -Wall -O2 main.cpp -o evolution-sim -I<SDL2 include path> \
+-I<Nuklear include path> -L<lib path> -lSDL2 -lSDL2_image -lm
 ```
 
 Windows (MSVC):
 
 ```
-cl /std:c17 /W4 /O2 main.c /Fe:evolution-sim.exe /I"<SDL2 include path>" ^
+cl /std:c++latest /W4 /O2 main.cpp /Fe:evolution-sim.exe /I"<SDL2 include path>" ^
 /I"<SDL2_image include path>" /I"<Nuklear include path>" /link Shell32.lib ^
 /LIBPATH:"<SDL2 lib path>" SDL2main.lib SDL2.lib /LIBPATH:"<SDL2_image lib path>" ^
 SDL2_image.lib /SUBSYSTEM:WINDOWS
@@ -163,8 +163,7 @@ When a cell dies, the energy of the tile below it **increases** by **the age of 
 
 I'm working on this project solo.
 I was inspired by Conway's game of life, and decided to make something more complex and "alive", less order-based and more chaos-based.
-The rendering engine is written in C with SDL2 and SDL2_image for graphics and Nuklear for the GUI.
-It currently lacks a mipmap system, so zooming out too far causes performance issues.
+The entire thing is written in C++ with SDL2 and Nuklear.
 
 ## Future plans
 
@@ -178,4 +177,4 @@ It currently lacks a mipmap system, so zooming out too far causes performance is
 
 - Cleaner GUI and a custom GUI implementation
 
-- Better rendering optimization and mipmap implementation
+- Better rendering optimization
