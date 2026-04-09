@@ -27,7 +27,7 @@
 
 constexpr const char
     *TITLE        = "evolution-sim",
-    *VERSION      = "v0.2.1 preview",
+    *VERSION      = "v0.2.1",
     *RELEASE_DATE = "04/09/2026";
 
 namespace rng {

@@ -1,5 +1,9 @@
 ## Changelog
 
+### v0.2.1 - 04/09/2026
+
+Completely rewrote the entire C source code in C++.
+
 ### v0.2.0 - 04/04/2026
 
 #### Added:
